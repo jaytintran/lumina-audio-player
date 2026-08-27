@@ -10,6 +10,7 @@ import {
   Trash2,
   Check,
   ShieldCheck,
+  RotateCw,
 } from 'lucide-react';
 import { db, getAppSettings, updateAppSettings } from '../../db/db';
 import type { AppSettings } from '../../db/schema';
@@ -24,11 +25,43 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [savedToast, setSavedToast] = useState(false);
 
+  // Storage Stats State
+  const [storageUsageBytes, setStorageUsageBytes] = useState<number>(0);
+  const [storageQuotaBytes, setStorageQuotaBytes] = useState<number>(0);
+  const [trackCount, setTrackCount] = useState<number>(0);
+  const [isRefreshingStorage, setIsRefreshingStorage] = useState(false);
+
+  const fetchStorageStats = async () => {
+    setIsRefreshingStorage(true);
+    try {
+      if (navigator.storage && navigator.storage.estimate) {
+        const estimate = await navigator.storage.estimate();
+        setStorageUsageBytes(estimate.usage || 0);
+        setStorageQuotaBytes(estimate.quota || 0);
+      }
+      const count = await db.tracks.count();
+      setTrackCount(count);
+    } catch (err) {
+      console.error('Failed to estimate storage:', err);
+    } finally {
+      setIsRefreshingStorage(false);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       getAppSettings().then(setSettings);
+      fetchStorageStats();
     }
   }, [isOpen]);
+
+  const formatBytes = (bytes: number): string => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
+  };
 
   if (!isOpen || !settings) return null;
 
@@ -294,6 +327,59 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           {/* STORAGE & PRIVACY */}
           {activeTab === 'sources' && (
             <div className="space-y-4">
+              {/* Storage & Data Section matching screenshot */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <HardDrive className="w-4 h-4 text-emerald-400" />
+                    <h4 className="text-xs font-bold text-slate-100">Storage & Data</h4>
+                  </div>
+                  <button
+                    onClick={fetchStorageStats}
+                    disabled={isRefreshingStorage}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-[#141d27] transition-all disabled:opacity-50"
+                    title="Refresh Storage Usage"
+                  >
+                    <RotateCw className={`w-3.5 h-3.5 ${isRefreshingStorage ? 'animate-spin text-emerald-400' : ''}`} />
+                  </button>
+                </div>
+
+                {/* Storage Card Container matching screenshot */}
+                <div className="p-4 rounded-2xl bg-[#090d12] border border-[#17232e] space-y-3 shadow-inner">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-sm text-slate-100 font-mono">
+                      {formatBytes(storageUsageBytes)} used
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-mono">
+                      Initial pool: {storageQuotaBytes > 0 ? formatBytes(storageQuotaBytes) : '2.0 GB'} (Auto-expandable)
+                    </span>
+                  </div>
+
+                  {/* Emerald Progress Bar */}
+                  <div className="w-full h-1.5 rounded-full bg-[#141d27] overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-emerald-500 transition-all duration-500 shadow-sm shadow-emerald-500/50"
+                      style={{
+                        width: `${Math.max(
+                          Math.min(
+                            storageQuotaBytes > 0
+                              ? (storageUsageBytes / storageQuotaBytes) * 100
+                              : 0,
+                            100
+                          ),
+                          storageUsageBytes > 0 ? 3 : 0
+                        )}%`,
+                      }}
+                    />
+                  </div>
+
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Stores {trackCount} {trackCount === 1 ? 'audio track' : 'audio tracks'}, cached metadata, playlists, and OPFS files. Storage dynamically grows on your disk as more songs are imported.
+                  </p>
+                </div>
+              </div>
+
+              {/* Local-First Guarantee Notice */}
               <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 flex items-start gap-3">
                 <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                 <div>
@@ -303,13 +389,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     Origin Private File System (OPFS) and IndexedDB. No files or metadata ever leave your machine.
                   </p>
                 </div>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-card/60 border border-border space-y-2">
-                <p className="font-semibold text-foreground">OPFS Storage Engine</p>
-                <p className="text-muted-foreground text-[11px]">
-                  Files are partitioned under sandboxed paths <code className="text-primary font-mono">audio/</code> and <code className="text-primary font-mono">covers/</code>.
-                </p>
               </div>
             </div>
           )}
