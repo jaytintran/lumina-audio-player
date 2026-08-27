@@ -17,6 +17,7 @@ import { AlbumsView } from '../views/AlbumsView';
 import { GenresView } from '../views/GenresView';
 import { PlaylistDetailView } from '../views/PlaylistDetailView';
 import { PlayerBar } from '../player/PlayerBar';
+import { MultiDeckTabBar } from '../player/MultiDeckTabBar';
 import { NowPlayingModal } from '../player/NowPlayingModal';
 import { QueueDrawer } from '../player/QueueDrawer';
 import { DuplicateModal } from '../library/DuplicateModal';
@@ -315,6 +316,9 @@ export const AppShell: React.FC = () => {
             {renderCurrentView()}
           </main>
         </div>
+
+        {/* Multi-Deck Audio Layers Floating Tab Bar */}
+        <MultiDeckTabBar />
 
         {/* Persistent Bottom Player Bar */}
         <PlayerBar />

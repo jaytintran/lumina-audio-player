@@ -9,9 +9,11 @@ import {
   Download,
   Trash2,
   Plus,
+  Layers,
 } from 'lucide-react';
 import type { Track } from '../../db/schema';
 import { usePlayerStore } from '../../stores/playerStore';
+import { useMultiDeckStore } from '../../stores/multiDeckStore';
 import { usePlaylists } from '../../hooks/usePlaylists';
 import { useFolders } from '../../hooks/useFolders';
 import { db } from '../../db/db';
@@ -36,6 +38,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
   const menuRef = useRef<HTMLDivElement>(null);
 
   const { playTrack, addToQueue, playNext } = usePlayerStore();
+  const { addDeck } = useMultiDeckStore();
   const { playlists, addTracksToPlaylist, createPlaylist } = usePlaylists();
   const { folders, addTracksToFolder } = useFolders('view', 'home');
 
@@ -136,6 +139,22 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
               <span className="font-semibold text-xs">Play Now</span>
             </div>
             <span className="text-[10px] text-emerald-500/60 opacity-0 group-hover/btn:opacity-100 transition-opacity font-mono">↵</span>
+          </button>
+
+          <button
+            onClick={() => {
+              addDeck(track, true);
+              setMenuPosition(null);
+            }}
+            className="group/btn w-full flex items-center justify-between px-3 py-2 rounded-xl bg-transparent hover:bg-teal-500/15 hover:text-teal-300 transition-all text-left"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="p-1 rounded-lg bg-teal-500/10 group-hover/btn:bg-teal-500/20 group-hover/btn:scale-110 transition-all text-teal-400">
+                <Layers className="w-3.5 h-3.5" />
+              </div>
+              <span className="font-medium text-xs">Play in New Layer / Tab</span>
+            </div>
+            <span className="text-[10px] text-teal-500/60 opacity-0 group-hover/btn:opacity-100 transition-opacity font-mono">+Layer</span>
           </button>
 
           <button
