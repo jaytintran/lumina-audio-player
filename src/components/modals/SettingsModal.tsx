@@ -171,19 +171,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="font-semibold text-foreground">Cards Per Row</p>
-                    <p className="text-muted-foreground text-[11px]">Choose how many audio cards to display per row (2 – 6)</p>
+                    <p className="text-muted-foreground text-[11px]">
+                      {settings.viewMode === 'row'
+                        ? 'Choose column count for horizontal track rows (1 gives a full-width classic music player list)'
+                        : 'Choose column count for vertical card grid (2 – 6)'}
+                    </p>
                   </div>
                   <span className="font-mono text-primary font-bold text-xs px-2.5 py-0.5 rounded-md bg-primary/10 border border-primary/20">
-                    {settings.tracksPerRow || 4} Columns
+                    {settings.tracksPerRow || (settings.viewMode === 'row' ? 1 : 4)} {((settings.tracksPerRow || 1) === 1) ? 'Row' : 'Columns'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 pt-1">
-                  {[2, 3, 4, 5, 6].map((num) => (
+                  {(settings.viewMode === 'row' ? [1, 2, 3, 4, 5, 6] : [2, 3, 4, 5, 6]).map((num) => (
                     <button
                       key={num}
                       onClick={() => handleUpdate({ tracksPerRow: num })}
                       className={`flex-1 py-1.5 rounded-xl font-mono text-xs font-semibold transition-all border ${
-                        (settings.tracksPerRow || 4) === num
+                        (settings.tracksPerRow || (settings.viewMode === 'row' ? 1 : 4)) === num
                           ? 'bg-primary/20 border-primary/40 text-primary shadow-sm'
                           : 'bg-neutral-900/60 border-border text-muted-foreground hover:text-foreground hover:border-border/80'
                       }`}
