@@ -55,6 +55,10 @@ export function useFolders(scopeType: 'view' | 'playlist' = 'view', scopeId = 'h
     await db.trackFolders.where({ folderId, trackId }).delete();
   };
 
+  const ungroupTracks = async (trackIds: number[]) => {
+    await db.trackFolders.where('trackId').anyOf(trackIds).delete();
+  };
+
   return {
     folders: folders || [],
     createFolder,
@@ -63,6 +67,7 @@ export function useFolders(scopeType: 'view' | 'playlist' = 'view', scopeId = 'h
     deleteFolder,
     addTracksToFolder,
     removeTrackFromFolder,
+    ungroupTracks,
   };
 }
 
@@ -85,4 +90,12 @@ export function useAllFolderTrackIds() {
     const mappings = await db.trackFolders.toArray();
     return new Set(mappings.map((m) => m.trackId));
   }, []);
+}
+
+export function useTrackFolderIds(trackId?: number) {
+  return useLiveQuery(async () => {
+    if (!trackId) return [];
+    const mappings = await db.trackFolders.where('trackId').equals(trackId).toArray();
+    return mappings.map((m) => m.folderId);
+  }, [trackId]);
 }

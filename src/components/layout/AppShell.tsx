@@ -77,7 +77,7 @@ export const AppShell: React.FC = () => {
   const mostPlayedTracks = useMostPlayedTracks() || [];
 
   const { addTracksToPlaylist } = usePlaylists();
-  const { addTracksToFolder } = useFolders('view', 'home');
+  const { addTracksToFolder, ungroupTracks } = useFolders('view', 'home');
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -108,6 +108,8 @@ export const AppShell: React.FC = () => {
     // Dropped on a Sidebar Nav item
     if (overId === 'nav-favorites') {
       await db.tracks.update(track.id, { isFavorite: true });
+    } else if (overId === 'ungroup-drop-zone' || overId === 'all-songs-drop') {
+      await ungroupTracks([track.id]);
     } else if (overId.startsWith('playlist-drop-')) {
       const playlistId = parseInt(overId.replace('playlist-drop-', ''), 10);
       if (!isNaN(playlistId)) {

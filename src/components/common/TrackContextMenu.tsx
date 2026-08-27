@@ -10,12 +10,13 @@ import {
   Trash2,
   Plus,
   Layers,
+  FolderMinus,
 } from 'lucide-react';
 import type { Track } from '../../db/schema';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useMultiDeckStore } from '../../stores/multiDeckStore';
 import { usePlaylists } from '../../hooks/usePlaylists';
-import { useFolders } from '../../hooks/useFolders';
+import { useFolders, useTrackFolderIds } from '../../hooks/useFolders';
 import { db } from '../../db/db';
 import { deleteFile, readBlob } from '../../db/opfs';
 import { EditTrackMetadataModal } from '../library/EditTrackMetadataModal';
@@ -40,7 +41,8 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
   const { playTrack, addToQueue, playNext } = usePlayerStore();
   const { addDeck } = useMultiDeckStore();
   const { playlists, addTracksToPlaylist, createPlaylist } = usePlaylists();
-  const { folders, addTracksToFolder } = useFolders('view', 'home');
+  const { folders, addTracksToFolder, ungroupTracks } = useFolders('view', 'home');
+  const assignedFolderIds = useTrackFolderIds(track.id);
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -281,6 +283,22 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
               </div>
             )}
           </div>
+
+          {/* Remove from folder / Ungroup if assigned */}
+          {assignedFolderIds && assignedFolderIds.length > 0 && (
+            <button
+              onClick={() => {
+                if (track.id) {
+                  ungroupTracks([track.id]);
+                }
+                setMenuPosition(null);
+              }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-amber-500/20 text-amber-400/90 hover:text-amber-300 transition-colors text-left"
+            >
+              <FolderMinus className="w-3.5 h-3.5 text-amber-400" />
+              <span>Ungroup from Folders</span>
+            </button>
+          )}
 
           <div className="h-px bg-border my-1" />
 

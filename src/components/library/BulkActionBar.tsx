@@ -11,10 +11,12 @@ import {
   Music,
   User,
   Check,
+  FolderMinus,
 } from 'lucide-react';
 import type { Track } from '../../db/schema';
 import { usePlayerStore } from '../../stores/playerStore';
 import { usePlaylists } from '../../hooks/usePlaylists';
+import { useFolders } from '../../hooks/useFolders';
 import { db } from '../../db/db';
 import { deleteFile } from '../../db/opfs';
 
@@ -37,6 +39,7 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
 
   const { addToQueue, currentTrack } = usePlayerStore();
   const { playlists, addTracksToPlaylist } = usePlaylists();
+  const { ungroupTracks } = useFolders('view', 'home');
 
   if (selectedTrackIds.size === 0) return null;
 
@@ -45,6 +48,11 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
 
   const handleBulkAddToQueue = () => {
     addToQueue(selectedTracks);
+    onClearSelection();
+  };
+
+  const handleBulkUngroup = async () => {
+    await ungroupTracks(selectedIdsArray);
     onClearSelection();
   };
 
@@ -181,6 +189,16 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
         >
           <Heart className="w-3.5 h-3.5 text-rose-400" />
           <span>Favorite</span>
+        </button>
+
+        {/* Ungroup from Folders */}
+        <button
+          onClick={handleBulkUngroup}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#141d27] hover:bg-amber-950/40 hover:text-amber-300 text-slate-300 border border-[#1e2a38] transition-colors whitespace-nowrap"
+          title="Remove selected tracks from any folders"
+        >
+          <FolderMinus className="w-3.5 h-3.5 text-amber-400" />
+          <span>Ungroup</span>
         </button>
 
         {/* Delete */}

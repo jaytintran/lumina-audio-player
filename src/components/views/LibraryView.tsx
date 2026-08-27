@@ -15,6 +15,7 @@ import type { Track } from '../../db/schema';
 import { useFolders, useAllFolderTrackIds } from '../../hooks/useFolders';
 import { useSources } from '../../hooks/useSources';
 import { usePlayerStore } from '../../stores/playerStore';
+import { useDroppable } from '@dnd-kit/core';
 import { TrackGrid } from '../library/TrackGrid';
 import { TrackRowList } from '../library/TrackRow';
 import { FolderSection } from '../library/FolderSection';
@@ -66,6 +67,10 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   const [newSourceTitle, setNewSourceTitle] = useState('');
   const [newSourceUrl, setNewSourceUrl] = useState('');
   const [selectedTrackIds, setSelectedTrackIds] = useState<Set<number>>(new Set());
+
+  const { setNodeRef: setUngroupRef, isOver: isOverUngroup } = useDroppable({
+    id: 'ungroup-drop-zone',
+  });
 
   const handleToggleHideGrouped = () => {
     updateSettings.mutate({ hideGroupedTracks: !hideGroupedTracks });
@@ -251,7 +256,14 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
       )}
 
       {/* View Header & Action Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div
+        ref={setUngroupRef}
+        className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-2 rounded-2xl transition-all duration-200 ${
+          isOverUngroup
+            ? 'bg-amber-950/20 border border-amber-500/50 ring-2 ring-amber-500/30'
+            : ''
+        }`}
+      >
         <div>
           <div className="flex items-center gap-2.5">
             <Icon className={`w-5 h-5 ${iconColor}`} />
@@ -261,6 +273,11 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
             <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-[#0d1218] text-slate-400 border border-[#17232e]">
               {tracks.length}
             </span>
+            {isOverUngroup && (
+              <span className="text-[11px] font-bold text-amber-400 animate-pulse bg-amber-950/60 px-2 py-0.5 rounded-md border border-amber-500/40">
+                Drop to Ungroup
+              </span>
+            )}
           </div>
           {subtitle && <p className="text-xs text-slate-400 mt-1">{subtitle}</p>}
         </div>
