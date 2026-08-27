@@ -3,6 +3,7 @@ import { Play, Pause, Heart, Music, Star, Check } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
 import type { Track } from '../../db/schema';
 import { usePlayerStore } from '../../stores/playerStore';
+import { useMultiDeckStore } from '../../stores/multiDeckStore';
 import { useSettings } from '../../hooks/useSettings';
 import { CoverArt } from '../common/CoverArt';
 import { TrackDropdown } from '../common/TrackDropdown';
@@ -32,6 +33,7 @@ export const DraggableTrackRowItem: React.FC<TrackRowItemProps> = ({
   onLongPressSelect,
 }) => {
   const { currentTrack, isPlaying, playTrack, togglePlay } = usePlayerStore();
+  const { decks } = useMultiDeckStore();
   const { data: settings } = useSettings();
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isLongPressRef = useRef(false);
@@ -50,6 +52,7 @@ export const DraggableTrackRowItem: React.FC<TrackRowItemProps> = ({
   });
 
   const isCurrent = currentTrack?.id === track.id;
+  const isDeckActive = decks.some((d) => d.track.id === track.id);
 
   const handlePlayClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -147,7 +150,9 @@ export const DraggableTrackRowItem: React.FC<TrackRowItemProps> = ({
           isSelected
             ? 'bg-[#0f241a] border-emerald-500 ring-2 ring-emerald-500/50 shadow-md'
             : isCurrent
-            ? 'bg-[#0d171d] border-emerald-500/60'
+            ? 'bg-[#0d171d] border-emerald-500/60 ring-1 ring-emerald-500/30'
+            : isDeckActive
+            ? 'bg-[#09171b] border-teal-500/60 ring-1 ring-teal-500/30 shadow-md'
             : 'border-[#17232e] bg-[#0d1218] hover:border-[#243748] hover:bg-[#101720]'
         } ${isDragging ? 'opacity-30' : ''}`}
       >

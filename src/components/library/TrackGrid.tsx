@@ -3,6 +3,7 @@ import { Play, Pause, Star, Music, Check, Heart } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
 import type { Track } from '../../db/schema';
 import { usePlayerStore } from '../../stores/playerStore';
+import { useMultiDeckStore } from '../../stores/multiDeckStore';
 import { useSettings } from '../../hooks/useSettings';
 import { CoverArt } from '../common/CoverArt';
 import { TrackContextMenu } from '../common/TrackContextMenu';
@@ -27,6 +28,7 @@ export const DraggableTrackCard: React.FC<TrackCardProps> = ({
   onLongPressSelect,
 }) => {
   const { currentTrack, isPlaying, playTrack, togglePlay } = usePlayerStore();
+  const { decks } = useMultiDeckStore();
   const { data: settings } = useSettings();
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isLongPressRef = useRef(false);
@@ -46,6 +48,7 @@ export const DraggableTrackCard: React.FC<TrackCardProps> = ({
   });
 
   const isCurrent = currentTrack?.id === track.id;
+  const isDeckActive = decks.some((d) => d.track.id === track.id);
 
   const handlePlayClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -59,38 +62,24 @@ export const DraggableTrackCard: React.FC<TrackCardProps> = ({
   const handleFavoriteClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (track.id) {
-      await db.tracks.update(track.id, { isFavorite: !track.isFavorite });
+      const nextFav = !track.isFavorite;
+      await db.tracks.update(track.id, { isFavorite: nextFav });
     }
   };
 
-  const pointerStartPos = useRef<{ x: number; y: number } | null>(null);
-
-  // Long press detection handlers
   const handlePointerDown = (e: React.PointerEvent) => {
-    // Only primary mouse button or touch
-    if (e.button !== 0 && e.pointerType === 'mouse') return;
-    
+    if (e.button !== 0) return;
     isLongPressRef.current = false;
-    pointerStartPos.current = { x: e.clientX, y: e.clientY };
-
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-    }
-
     longPressTimerRef.current = setTimeout(() => {
       isLongPressRef.current = true;
       if (track.id && onLongPressSelect) {
         onLongPressSelect(track.id);
       }
-    }, 450); // 450ms long press threshold
+    }, 450);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!pointerStartPos.current || !longPressTimerRef.current) return;
-    const deltaX = Math.abs(e.clientX - pointerStartPos.current.x);
-    const deltaY = Math.abs(e.clientY - pointerStartPos.current.y);
-    // If user moved finger/mouse more than 6px, it's a drag or scroll - cancel long press immediately
-    if (deltaX > 6 || deltaY > 6) {
+    if (longPressTimerRef.current && (Math.abs(e.movementX) > 6 || Math.abs(e.movementY) > 6)) {
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
     }
@@ -101,19 +90,22 @@ export const DraggableTrackCard: React.FC<TrackCardProps> = ({
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
     }
-    pointerStartPos.current = null;
   };
 
   const handleClick = (e: React.MouseEvent) => {
     if (isLongPressRef.current) {
-      e.preventDefault();
       e.stopPropagation();
+      isLongPressRef.current = false;
       return;
     }
-    if (isSelectionActive && onSelect && track.id) {
+    if (isSelectionActive && track.id && onSelect) {
       onSelect(track.id, e);
-    } else if (onSelect && track.id && (e.shiftKey || e.ctrlKey || e.metaKey)) {
-      onSelect(track.id, e);
+      return;
+    }
+    if (isCurrent) {
+      togglePlay();
+    } else {
+      playTrack(track, allTracks);
     }
   };
 
@@ -122,7 +114,6 @@ export const DraggableTrackCard: React.FC<TrackCardProps> = ({
       <div
         ref={setNodeRef}
         {...attributes}
-        {...listeners}
         onPointerDown={(e) => {
           listeners?.onPointerDown?.(e);
           handlePointerDown(e);
@@ -143,7 +134,9 @@ export const DraggableTrackCard: React.FC<TrackCardProps> = ({
           isSelected
             ? 'border-emerald-500 bg-[#0f241a] ring-2 ring-emerald-500/50 shadow-lg shadow-emerald-500/10'
             : isCurrent
-            ? 'border-emerald-500/70 bg-[#0b161c]'
+            ? 'border-emerald-500/70 bg-[#0b161c] ring-1 ring-emerald-500/30'
+            : isDeckActive
+            ? 'border-teal-500/60 bg-[#09171b] ring-1 ring-teal-500/30 shadow-md'
             : 'border-[#17232e] hover:border-[#243748] hover:bg-[#101720]'
         } ${isDragging ? 'opacity-30' : ''}`}
       >

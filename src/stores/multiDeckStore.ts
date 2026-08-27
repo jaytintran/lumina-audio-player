@@ -32,6 +32,7 @@ interface MultiDeckState {
   pauseAllDecks: () => void;
   playAllDecks: () => void;
   clearAllDecks: () => void;
+  swapWithMainTrack: (deckId: string, currentMainTrack: Track | null) => Promise<Track | undefined>;
 }
 
 export const useMultiDeckStore = create<MultiDeckState>((set, get) => ({
@@ -262,5 +263,95 @@ export const useMultiDeckStore = create<MultiDeckState>((set, get) => ({
       } catch (e) {}
     });
     set({ decks: [], activeDeckId: null });
+  },
+
+  swapWithMainTrack: async (deckId: string, currentMainTrack: Track | null) => {
+    const deck = get().decks.find((d) => d.id === deckId);
+    if (!deck) return;
+
+    const deckTrack = deck.track;
+    deck.audio.pause();
+    deck.audio.src = '';
+    try {
+      deck.gainNode.disconnect();
+    } catch (e) {}
+
+    // If there was a main track playing, replace this deck slot with the previous main track
+    if (currentMainTrack && currentMainTrack.id !== deckTrack.id) {
+      let ctx = get().audioContext;
+      if (!ctx) {
+        const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+        ctx = new AudioCtxClass();
+        set({ audioContext: ctx });
+      }
+      const audioUrl = await readObjectUrl(currentMainTrack.fileKey);
+      if (audioUrl) {
+        const audio = new Audio();
+        audio.src = audioUrl;
+        audio.preload = 'auto';
+        audio.crossOrigin = 'anonymous';
+
+        const gainNode = ctx.createGain();
+        gainNode.gain.value = deck.volume;
+
+        try {
+          const source = ctx.createMediaElementSource(audio);
+          source.connect(gainNode);
+          gainNode.connect(ctx.destination);
+        } catch (e) {}
+
+        const newDeck: MultiDeckChannel = {
+          id: `deck-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          track: currentMainTrack,
+          audio,
+          gainNode,
+          isPlaying: false,
+          isMuted: deck.isMuted,
+          volume: deck.volume,
+          currentTime: 0,
+          duration: currentMainTrack.duration || 0,
+          isLooping: deck.isLooping,
+        };
+
+        audio.addEventListener('timeupdate', () => {
+          set((state) => ({
+            decks: state.decks.map((d) =>
+              d.id === newDeck.id
+                ? { ...d, currentTime: audio.currentTime, duration: audio.duration || d.duration }
+                : d
+            ),
+          }));
+        });
+
+        audio.addEventListener('ended', () => {
+          const d = get().decks.find((k) => k.id === newDeck.id);
+          if (d?.isLooping) {
+            audio.currentTime = 0;
+            audio.play().catch(console.error);
+          } else {
+            set((state) => ({
+              decks: state.decks.map((k) =>
+                k.id === newDeck.id ? { ...k, isPlaying: false } : k
+              ),
+            }));
+          }
+        });
+
+        set((state) => ({
+          decks: [...state.decks.filter((d) => d.id !== deckId), newDeck],
+          activeDeckId: newDeck.id,
+        }));
+      } else {
+        set((state) => ({
+          decks: state.decks.filter((d) => d.id !== deckId),
+        }));
+      }
+    } else {
+      set((state) => ({
+        decks: state.decks.filter((d) => d.id !== deckId),
+      }));
+    }
+
+    return deckTrack;
   },
 }));
