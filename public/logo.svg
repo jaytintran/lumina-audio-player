@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Solid Modern Matte Dark Background -->
+  <rect width="512" height="512" rx="128" fill="#080c10" stroke="#16222f" stroke-width="8" />
+
+  <!-- Clean Matte Soundwaves / Concentric Vinyl Tracks -->
+  <circle cx="256" cy="256" r="170" fill="none" stroke="#131d27" stroke-width="4" stroke-dasharray="10 12" />
+  <circle cx="256" cy="256" r="135" fill="none" stroke="#16222e" stroke-width="4" />
+
+  <!-- Audio Waveform Bars (Solid Clean Emerald & Mint) -->
+  <g>
+    <rect x="112" y="216" width="18" height="80" rx="9" fill="#10b981" />
+    <rect x="142" y="172" width="18" height="168" rx="9" fill="#10b981" />
+    <rect x="172" y="136" width="18" height="240" rx="9" fill="#10b981" />
+
+    <!-- Central Player Crest / Play Glyph -->
+    <path d="M 224 140 C 224 125 241 116 254 124 L 396 236 C 408 245 408 267 396 276 L 254 388 C 241 396 224 387 224 372 Z" fill="#10b981" />
+
+    <!-- Sharp Inner Negative Space -->
+    <path d="M 252 188 C 252 180 261 175 268 179 L 344 243 C 350 248 350 258 344 263 L 268 327 C 261 331 252 326 252 318 Z" fill="#080c10" />
+
+    <!-- Solid Center Core Dot -->
+    <circle cx="292" cy="253" r="16" fill="#10b981" />
+  </g>
+</svg>

@@ -1,0 +1,365 @@
+import React, { useState, useEffect } from 'react';
+import {
+  X,
+  Sliders,
+  Palette,
+  Volume2,
+  HardDrive,
+  Moon,
+  Sun,
+  Trash2,
+  Check,
+  ShieldCheck,
+} from 'lucide-react';
+import { db, getAppSettings, updateAppSettings } from '../../db/db';
+import type { AppSettings } from '../../db/schema';
+
+interface SettingsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
+  const [activeTab, setActiveTab] = useState<'general' | 'appearance' | 'playback' | 'sources'>('appearance');
+  const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [savedToast, setSavedToast] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      getAppSettings().then(setSettings);
+    }
+  }, [isOpen]);
+
+  if (!isOpen || !settings) return null;
+
+  const handleUpdate = async (partial: Partial<AppSettings>) => {
+    const updated = { ...settings, ...partial };
+    setSettings(updated);
+    await updateAppSettings(partial);
+    setSavedToast(true);
+    setTimeout(() => setSavedToast(false), 2000);
+  };
+
+  const handleClearAllData = async () => {
+    if (confirm('Are you sure you want to completely clear the local database and OPFS audio storage?')) {
+      await db.tracks.clear();
+      await db.playlists.clear();
+      await db.folders.clear();
+      await db.trackPlaylists.clear();
+      await db.trackFolders.clear();
+      window.location.reload();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in duration-200">
+      <div className="w-full max-w-2xl glass-panel rounded-3xl p-6 shadow-2xl border border-border flex flex-col max-h-[85vh] overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-4 border-b border-border">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary">
+              <Sliders className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-foreground">Lumina Audio Settings</h2>
+              <p className="text-xs text-muted-foreground">Customize player appearance, audio engine, and privacy</p>
+            </div>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Tab Switcher */}
+        <div className="flex items-center gap-1.5 py-3 border-b border-border text-xs">
+          {[
+            { id: 'appearance', label: 'Appearance', icon: Palette },
+            { id: 'playback', label: 'Playback', icon: Volume2 },
+            { id: 'sources', label: 'Storage & Privacy', icon: HardDrive },
+            { id: 'general', label: 'General', icon: Sliders },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-medium transition-all ${
+                  activeTab === tab.id
+                    ? 'bg-primary/20 text-primary border border-primary/30 font-semibold'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tab Contents */}
+        <div className="flex-1 overflow-y-auto py-5 space-y-5 pr-2 text-xs">
+          {/* APPEARANCE TAB */}
+          {activeTab === 'appearance' && (
+            <div className="space-y-4">
+              {/* View Mode */}
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-card/60 border border-border">
+                <div>
+                  <p className="font-semibold text-foreground">Default Library View Mode</p>
+                  <p className="text-muted-foreground text-[11px]">
+                    Choose between vertical card grid or horizontal list rows
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 bg-neutral-900 p-1 rounded-xl border border-border">
+                  <button
+                    onClick={() => handleUpdate({ viewMode: 'grid' })}
+                    className={`px-3 py-1 rounded-lg transition-all ${
+                      settings.viewMode === 'grid' ? 'bg-primary/20 text-primary font-bold shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Grid (Vertical)
+                  </button>
+                  <button
+                    onClick={() => handleUpdate({ viewMode: 'row' })}
+                    className={`px-3 py-1 rounded-lg transition-all ${
+                      settings.viewMode === 'row' ? 'bg-primary/20 text-primary font-bold shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Row (Horizontal)
+                  </button>
+                </div>
+              </div>
+
+              {/* Tracks Per Row */}
+              <div className="p-3.5 rounded-2xl bg-card/60 border border-border space-y-2.5">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="font-semibold text-foreground">Cards Per Row</p>
+                    <p className="text-muted-foreground text-[11px]">Choose how many audio cards to display per row (2 – 6)</p>
+                  </div>
+                  <span className="font-mono text-primary font-bold text-xs px-2.5 py-0.5 rounded-md bg-primary/10 border border-primary/20">
+                    {settings.tracksPerRow || 4} Columns
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  {[2, 3, 4, 5, 6].map((num) => (
+                    <button
+                      key={num}
+                      onClick={() => handleUpdate({ tracksPerRow: num })}
+                      className={`flex-1 py-1.5 rounded-xl font-mono text-xs font-semibold transition-all border ${
+                        (settings.tracksPerRow || 4) === num
+                          ? 'bg-primary/20 border-primary/40 text-primary shadow-sm'
+                          : 'bg-neutral-900/60 border-border text-muted-foreground hover:text-foreground hover:border-border/80'
+                      }`}
+                    >
+                      {num}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Theme Selector */}
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-card/60 border border-border">
+                <div>
+                  <p className="font-semibold text-foreground">Color Theme</p>
+                  <p className="text-muted-foreground text-[11px]">Glassmorphism dark theme optimized for OLED</p>
+                </div>
+                <div className="flex items-center gap-1 bg-neutral-900 p-1 rounded-xl border border-border">
+                  <button
+                    onClick={() => handleUpdate({ theme: 'dark' })}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all ${
+                      settings.theme === 'dark' ? 'bg-primary/20 text-primary font-bold' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <Moon className="w-3.5 h-3.5" />
+                    <span>Dark</span>
+                  </button>
+                  <button
+                    onClick={() => handleUpdate({ theme: 'light' })}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all ${
+                      settings.theme === 'light' ? 'bg-primary/20 text-primary font-bold' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <Sun className="w-3.5 h-3.5" />
+                    <span>Light</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Metadata Visibility Section */}
+              <div className="p-4 rounded-2xl bg-card/60 border border-border space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">Metadata Visibility</h4>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Toggle what info appears across track cards and rows</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {[
+                    { key: "showArtist", label: "Artist Name", defaultVal: true },
+                    { key: "showAlbum", label: "Album Title", defaultVal: true },
+                    { key: "showDuration", label: "Track Duration", defaultVal: true },
+                    { key: "showBitrate", label: "Format & Quality", defaultVal: true },
+                    { key: "showRating", label: "Star Ratings", defaultVal: true },
+                    { key: "showGenre", label: "Genre Tag", defaultVal: true },
+                    { key: "showTags", label: "Category Tags", defaultVal: true },
+                    { key: "showPlayCount", label: "Play Count", defaultVal: false },
+                  ].map(({ key, label, defaultVal }) => {
+                    const isChecked = Boolean(settings[key as keyof AppSettings] ?? defaultVal);
+                    return (
+                      <div
+                        key={key}
+                        onClick={() => handleUpdate({ [key]: !isChecked })}
+                        className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl border transition-all cursor-pointer select-none ${
+                          isChecked
+                            ? 'bg-[#0f241a] border-emerald-500/40 text-slate-100 shadow-sm'
+                            : 'bg-[#090d12]/60 border-[#151e28]/70 text-slate-500 opacity-40 hover:opacity-75 hover:border-[#1e2a38]'
+                        }`}
+                      >
+                        <span className={`text-xs font-medium truncate ${isChecked ? 'text-slate-100 font-semibold' : 'text-slate-500'}`}>
+                          {label}
+                        </span>
+                        <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                          {isChecked && <Check className="w-4 h-4 text-emerald-400 stroke-[2.5]" />}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* PLAYBACK TAB */}
+          {activeTab === 'playback' && (
+            <div className="space-y-4">
+              {/* Gapless Playback */}
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-card/60 border border-border">
+                <div>
+                  <p className="font-semibold text-foreground">Gapless Playback</p>
+                  <p className="text-muted-foreground text-[11px]">Seamless audio transitions without silence gaps</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.gaplessPlayback}
+                  onChange={(e) => handleUpdate({ gaplessPlayback: e.target.checked })}
+                  className="w-4 h-4 rounded bg-neutral-900 border-border text-primary focus:ring-0 cursor-pointer"
+                />
+              </div>
+
+              {/* Crossfade */}
+              <div className="p-3.5 rounded-2xl bg-card/60 border border-border space-y-2">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="font-semibold text-foreground">Crossfade Transition</p>
+                    <p className="text-muted-foreground text-[11px]">Smoothly blend between consecutive tracks</p>
+                  </div>
+                  <span className="font-mono text-primary font-bold">{settings.crossfade}s</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={12}
+                  value={settings.crossfade}
+                  onChange={(e) => handleUpdate({ crossfade: parseInt(e.target.value, 10) })}
+                  className="w-full h-1.5 rounded-lg bg-neutral-800 appearance-none cursor-pointer"
+                />
+              </div>
+
+              {/* Default Speed */}
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-card/60 border border-border">
+                <div>
+                  <p className="font-semibold text-foreground">Default Playback Speed</p>
+                  <p className="text-muted-foreground text-[11px]">Useful for podcasts and audiobooks</p>
+                </div>
+                <select
+                  value={settings.playbackRate}
+                  onChange={(e) => handleUpdate({ playbackRate: parseFloat(e.target.value) })}
+                  className="bg-neutral-900 border border-border text-foreground rounded-xl px-3 py-1.5 focus:outline-none cursor-pointer font-mono"
+                >
+                  <option value={0.75}>0.75x</option>
+                  <option value={1.0}>1.0x (Normal)</option>
+                  <option value={1.25}>1.25x</option>
+                  <option value={1.5}>1.5x</option>
+                  <option value={2.0}>2.0x</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* STORAGE & PRIVACY */}
+          {activeTab === 'sources' && (
+            <div className="space-y-4">
+              <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 flex items-start gap-3">
+                <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-emerald-300">100% Local-First & Private</p>
+                  <p className="text-zinc-400 text-[11px] mt-0.5 leading-relaxed">
+                    All audio binaries, ID3 tags, and cover images are stored exclusively inside your browser's
+                    Origin Private File System (OPFS) and IndexedDB. No files or metadata ever leave your machine.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-card/60 border border-border space-y-2">
+                <p className="font-semibold text-foreground">OPFS Storage Engine</p>
+                <p className="text-muted-foreground text-[11px]">
+                  Files are partitioned under sandboxed paths <code className="text-primary font-mono">audio/</code> and <code className="text-primary font-mono">covers/</code>.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* GENERAL TAB */}
+          {activeTab === 'general' && (
+            <div className="space-y-4">
+              <div className="p-3.5 rounded-2xl bg-card/60 border border-border">
+                <p className="font-semibold text-foreground">About Lumina Audio</p>
+                <p className="text-muted-foreground text-[11px] mt-0.5">
+                  Version 1.0.0 • Built with React 19, TypeScript, Dexie.js, OPFS & Web Audio API
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-rose-950/20 border border-rose-500/30 flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-rose-300">Clear Library Data</p>
+                  <p className="text-zinc-400 text-[11px]">Deletes all tracks, playlists, and cached audio files</p>
+                </div>
+                <button
+                  onClick={handleClearAllData}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 border border-rose-500/40 font-bold text-xs transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Reset App</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between pt-4 border-t border-border">
+          {savedToast ? (
+            <span className="flex items-center gap-1 text-emerald-400 text-xs font-semibold animate-in fade-in">
+              <Check className="w-3.5 h-3.5" />
+              <span>Settings Saved</span>
+            </span>
+          ) : (
+            <span />
+          )}
+
+          <button
+            onClick={onClose}
+            className="px-5 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-xs hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

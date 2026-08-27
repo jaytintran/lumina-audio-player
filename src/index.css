@@ -1,0 +1,124 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    --background: #080b0f;
+    --foreground: #f1f5f9;
+    --card: #0d1218;
+    --card-foreground: #f1f5f9;
+    --border: #17232e;
+    --muted: #111822;
+    --muted-foreground: #94a3b8;
+    --primary: #10b981;
+    --primary-foreground: #041f14;
+    --accent: #111a24;
+    --accent-foreground: #34d399;
+    --ring: #10b981;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--background);
+    color: var(--foreground);
+    user-select: none;
+  }
+}
+
+/* Design System Utilities matching Lumina Ebook Reader */
+.bg-background { background-color: var(--background); }
+.text-foreground { color: var(--foreground); }
+.bg-card { background-color: var(--card); }
+.text-card-foreground { color: var(--card-foreground); }
+.border-border { border-color: var(--border); }
+.text-muted-foreground { color: var(--muted-foreground); }
+.bg-muted { background-color: var(--muted); }
+
+.bg-primary\/10 { background-color: rgba(16, 185, 129, 0.1); }
+.bg-primary\/15 { background-color: rgba(16, 185, 129, 0.15); }
+.bg-primary\/20 { background-color: rgba(16, 185, 129, 0.2); }
+.bg-primary\/25 { background-color: rgba(16, 185, 129, 0.25); }
+.bg-primary\/80 { background-color: rgba(16, 185, 129, 0.8); }
+.text-primary { color: #10b981; }
+.border-primary { border-color: #10b981; }
+.border-primary\/30 { border-color: rgba(16, 185, 129, 0.3); }
+.border-primary\/40 { border-color: rgba(16, 185, 129, 0.4); }
+.border-primary\/50 { border-color: rgba(16, 185, 129, 0.5); }
+.border-primary\/80 { border-color: rgba(16, 185, 129, 0.8); }
+.ring-primary { --tw-ring-color: #10b981; }
+
+/* Lumina Logo Glow */
+.lumina-logo-badge {
+  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #a855f7 100%);
+}
+
+.lumina-logo-text {
+  color: #38bdf8;
+  letter-spacing: 0.12em;
+}
+
+/* Glass & Card Surfaces matching screenshot */
+.glass-panel {
+  background: #080b0f;
+  border: 1px solid #17232e;
+}
+
+.glass-card {
+  background: #0d1218;
+  border: 1px solid #17232e;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.glass-card:hover {
+  background: #111822;
+  border-color: #243545;
+}
+
+.glass-dropdown {
+  background: #0a0e14;
+  border: 1px solid #1c2b3a;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Vinyl rotation */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
+
+.paused {
+  animation-play-state: paused !important;
+}
+
+input[type="range"] {
+  accent-color: #10b981;
+}
