@@ -95,7 +95,7 @@ export const TrackDropdown: React.FC<TrackDropdownProps> = ({ track, onDeleted }
             ref={menuContainerRef}
             className={`absolute right-0 ${
               openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
-            } w-56 z-50 bg-[#090d13] rounded-2xl p-1.5 shadow-2xl border border-[#17232e] text-xs text-slate-200 animate-in fade-in zoom-in-95 duration-150 max-h-[75vh] overflow-y-auto custom-scrollbar`}
+            } w-56 z-50 bg-[#090d13] rounded-2xl p-1.5 shadow-2xl border border-[#17232e] text-xs text-slate-200 animate-in fade-in zoom-in-95 duration-150 overflow-visible`}
           >
             {/* Play Actions Group */}
             <button
@@ -203,39 +203,75 @@ export const TrackDropdown: React.FC<TrackDropdownProps> = ({ track, onDeleted }
               )}
             </button>
 
-            {/* Add to Playlist Option */}
-            <button
-              onClick={() => {
-                setCollectionModalType('playlist');
-                setIsOpen(false);
-              }}
-              className="group/btn w-full flex items-center justify-between px-3 py-2 hover:bg-purple-500/15 hover:text-purple-300 rounded-xl transition-colors text-left"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="p-1 rounded-lg bg-purple-500/10 group-hover/btn:bg-purple-500/20 group-hover/btn:scale-110 transition-all text-purple-400">
-                  <Disc className="w-3.5 h-3.5" />
+            {/* Add to Playlist Option with Side-by-Side Flyout */}
+            <div className="relative">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCollectionModalType(collectionModalType === 'playlist' ? null : 'playlist');
+                }}
+                className={`group/btn w-full flex items-center justify-between px-3 py-2 rounded-xl transition-colors text-left ${
+                  collectionModalType === 'playlist'
+                    ? 'bg-purple-500/20 text-purple-300'
+                    : 'hover:bg-purple-500/15 hover:text-purple-300'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1 rounded-lg bg-purple-500/10 group-hover/btn:bg-purple-500/20 group-hover/btn:scale-110 transition-all text-purple-400">
+                    <Disc className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="font-medium text-xs">Add to Playlist</span>
                 </div>
-                <span className="font-medium text-xs">Add to Playlist</span>
-              </div>
-              <span className="text-[10px] text-purple-400/60 opacity-0 group-hover/btn:opacity-100 transition-opacity font-mono">...</span>
-            </button>
+                <span className={`text-[10px] text-slate-500 transition-colors ${collectionModalType === 'playlist' ? 'text-purple-400 font-bold' : ''}`}>
+                  ▶
+                </span>
+              </button>
 
-            {/* Add to Folder Option */}
-            <button
-              onClick={() => {
-                setCollectionModalType('folder');
-                setIsOpen(false);
-              }}
-              className="group/btn w-full flex items-center justify-between px-3 py-2 hover:bg-emerald-500/15 hover:text-emerald-300 rounded-xl transition-colors text-left"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="p-1 rounded-lg bg-emerald-500/10 group-hover/btn:bg-emerald-500/20 group-hover/btn:scale-110 transition-all text-emerald-400">
-                  <FolderPlus className="w-3.5 h-3.5" />
+              {collectionModalType === 'playlist' && (
+                <div className="absolute right-full top-0 mr-1.5 z-50">
+                  <AddToSubContextMenu
+                    type="playlist"
+                    tracks={[track]}
+                    onSelect={() => setIsOpen(false)}
+                  />
                 </div>
-                <span className="font-medium text-xs">Add to Folder</span>
-              </div>
-              <span className="text-[10px] text-emerald-400/60 opacity-0 group-hover/btn:opacity-100 transition-opacity font-mono">...</span>
-            </button>
+              )}
+            </div>
+
+            {/* Add to Folder Option with Side-by-Side Flyout */}
+            <div className="relative">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCollectionModalType(collectionModalType === 'folder' ? null : 'folder');
+                }}
+                className={`group/btn w-full flex items-center justify-between px-3 py-2 rounded-xl transition-colors text-left ${
+                  collectionModalType === 'folder'
+                    ? 'bg-emerald-500/20 text-emerald-300'
+                    : 'hover:bg-emerald-500/15 hover:text-emerald-300'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1 rounded-lg bg-emerald-500/10 group-hover/btn:bg-emerald-500/20 group-hover/btn:scale-110 transition-all text-emerald-400">
+                    <FolderPlus className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="font-medium text-xs">Add to Folder</span>
+                </div>
+                <span className={`text-[10px] text-slate-500 transition-colors ${collectionModalType === 'folder' ? 'text-emerald-400 font-bold' : ''}`}>
+                  ▶
+                </span>
+              </button>
+
+              {collectionModalType === 'folder' && (
+                <div className="absolute right-full top-0 mr-1.5 z-50">
+                  <AddToSubContextMenu
+                    type="folder"
+                    tracks={[track]}
+                    onSelect={() => setIsOpen(false)}
+                  />
+                </div>
+              )}
+            </div>
 
             {/* Ungroup option if in folder */}
             {assignedFolderIds && assignedFolderIds.length > 0 && (
@@ -280,15 +316,6 @@ export const TrackDropdown: React.FC<TrackDropdownProps> = ({ track, onDeleted }
           track={track}
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
-        />
-      )}
-
-      {collectionModalType && (
-        <AddToSubContextMenu
-          type={collectionModalType}
-          tracks={[track]}
-          isOpen={!!collectionModalType}
-          onClose={() => setCollectionModalType(null)}
         />
       )}
     </>
