@@ -8,18 +8,17 @@ import {
   Edit2,
   Download,
   Trash2,
-  Plus,
   Layers,
   FolderMinus,
 } from 'lucide-react';
 import type { Track } from '../../db/schema';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useMultiDeckStore } from '../../stores/multiDeckStore';
-import { usePlaylists } from '../../hooks/usePlaylists';
 import { useFolders, useTrackFolderIds } from '../../hooks/useFolders';
 import { db } from '../../db/db';
 import { deleteFile, readBlob } from '../../db/opfs';
 import { EditTrackMetadataModal } from '../library/EditTrackMetadataModal';
+import { AddToSubContextMenu } from '../modals/AddToSubContextMenu';
 
 interface TrackContextMenuProps {
   track: Track;
@@ -33,15 +32,13 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
   onDeleted,
 }) => {
   const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
-  const [showPlaylistsSub, setShowPlaylistsSub] = useState(false);
-  const [showFoldersSub, setShowFoldersSub] = useState(false);
+  const [collectionModalType, setCollectionModalType] = useState<'playlist' | 'folder' | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const { playTrack, addToQueue, playNext } = usePlayerStore();
   const { addDeck } = useMultiDeckStore();
-  const { playlists, addTracksToPlaylist, createPlaylist } = usePlaylists();
-  const { folders, addTracksToFolder, ungroupTracks } = useFolders('view', 'home');
+  const { ungroupTracks } = useFolders('view', 'home');
   const assignedFolderIds = useTrackFolderIds(track.id);
 
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -54,8 +51,6 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
     const x = Math.max(10, Math.min(e.clientX, window.innerWidth - menuWidth - 10));
     const y = Math.max(10, Math.min(e.clientY, window.innerHeight - menuHeight - 10));
     setMenuPosition({ x, y });
-    setShowPlaylistsSub(false);
-    setShowFoldersSub(false);
   };
 
   useEffect(() => {
@@ -122,15 +117,6 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
       if (track.fileKey) await deleteFile(track.fileKey);
       if (track.coverKey) await deleteFile(track.coverKey);
       onDeleted?.();
-    }
-    setMenuPosition(null);
-  };
-
-  const handleCreateAndAddToPlaylist = async () => {
-    const name = prompt('New Playlist Name:');
-    if (name && name.trim() && track.id) {
-      const newId = await createPlaylist(name.trim());
-      await addTracksToPlaylist(Number(newId), [track.id]);
     }
     setMenuPosition(null);
   };
@@ -249,102 +235,39 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
             )}
           </button>
 
-          {/* Add to Playlist Expandable / Submenu */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                setShowPlaylistsSub(!showPlaylistsSub);
-                setShowFoldersSub(false);
-              }}
-              className="group/btn w-full flex items-center justify-between px-3 py-2 rounded-xl bg-transparent hover:bg-purple-500/15 hover:text-purple-300 transition-all text-left"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="p-1 rounded-lg bg-purple-500/10 group-hover/btn:bg-purple-500/20 group-hover/btn:scale-110 transition-all text-purple-400">
-                  <Disc className="w-3.5 h-3.5" />
-                </div>
-                <span className="font-medium text-xs">Add to Playlist</span>
+          {/* Add to Playlist Option */}
+          <button
+            onClick={() => {
+              setCollectionModalType('playlist');
+              setMenuPosition(null);
+            }}
+            className="group/btn w-full flex items-center justify-between px-3 py-2 rounded-xl bg-transparent hover:bg-purple-500/15 hover:text-purple-300 transition-all text-left"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="p-1 rounded-lg bg-purple-500/10 group-hover/btn:bg-purple-500/20 group-hover/btn:scale-110 transition-all text-purple-400">
+                <Disc className="w-3.5 h-3.5" />
               </div>
-              <span className={`text-[10px] text-slate-500 transition-transform ${showPlaylistsSub ? 'rotate-90 text-purple-400' : ''}`}>
-                ▶
-              </span>
-            </button>
+              <span className="font-medium text-xs">Add to Playlist</span>
+            </div>
+            <span className="text-[10px] text-purple-400/60 opacity-0 group-hover/btn:opacity-100 transition-opacity font-mono">...</span>
+          </button>
 
-            {showPlaylistsSub && (
-              <div className="mt-1 mb-1.5 ml-2 p-1 bg-[#06090d] rounded-xl border border-[#1a2636] space-y-0.5 max-h-36 overflow-y-auto custom-scrollbar animate-in slide-in-from-top-1 duration-150">
-                <button
-                  onClick={handleCreateAndAddToPlaylist}
-                  className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-emerald-400 hover:bg-emerald-500/15 rounded-lg text-xs font-semibold"
-                >
-                  <Plus className="w-3 h-3 stroke-[3]" />
-                  <span>New Playlist...</span>
-                </button>
-                {playlists.length === 0 ? (
-                  <div className="px-2.5 py-1 text-slate-500 text-[11px]">No playlists yet</div>
-                ) : (
-                  playlists.map((pl) => (
-                    <button
-                      key={pl.id}
-                      onClick={() => {
-                        if (track.id && pl.id) {
-                          addTracksToPlaylist(pl.id, [track.id]);
-                        }
-                        setMenuPosition(null);
-                      }}
-                      className="w-full text-left px-2.5 py-1.5 hover:bg-purple-500/20 hover:text-purple-300 rounded-lg text-xs truncate text-slate-300 flex items-center gap-1.5"
-                    >
-                      <Disc className="w-3 h-3 text-purple-400/70 shrink-0" />
-                      <span className="truncate">{pl.name}</span>
-                    </button>
-                  ))
-                )}
+          {/* Add to Folder Option */}
+          <button
+            onClick={() => {
+              setCollectionModalType('folder');
+              setMenuPosition(null);
+            }}
+            className="group/btn w-full flex items-center justify-between px-3 py-2 rounded-xl bg-transparent hover:bg-emerald-500/15 hover:text-emerald-300 transition-all text-left"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="p-1 rounded-lg bg-emerald-500/10 group-hover/btn:bg-emerald-500/20 group-hover/btn:scale-110 transition-all text-emerald-400">
+                <FolderPlus className="w-3.5 h-3.5" />
               </div>
-            )}
-          </div>
-
-          {/* Add to Folder Expandable / Submenu */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                setShowFoldersSub(!showFoldersSub);
-                setShowPlaylistsSub(false);
-              }}
-              className="group/btn w-full flex items-center justify-between px-3 py-2 rounded-xl bg-transparent hover:bg-emerald-500/15 hover:text-emerald-300 transition-all text-left"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="p-1 rounded-lg bg-emerald-500/10 group-hover/btn:bg-emerald-500/20 group-hover/btn:scale-110 transition-all text-emerald-400">
-                  <FolderPlus className="w-3.5 h-3.5" />
-                </div>
-                <span className="font-medium text-xs">Add to Folder</span>
-              </div>
-              <span className={`text-[10px] text-slate-500 transition-transform ${showFoldersSub ? 'rotate-90 text-emerald-400' : ''}`}>
-                ▶
-              </span>
-            </button>
-
-            {showFoldersSub && (
-              <div className="mt-1 mb-1.5 ml-2 p-1 bg-[#06090d] rounded-xl border border-[#1a2636] space-y-0.5 max-h-36 overflow-y-auto custom-scrollbar animate-in slide-in-from-top-1 duration-150">
-                {folders.length === 0 ? (
-                  <div className="px-2.5 py-1.5 text-slate-500 text-[11px]">No folders created</div>
-                ) : (
-                  folders.map((f) => (
-                    <button
-                      key={f.id}
-                      onClick={() => {
-                        if (track.id && f.id) {
-                          addTracksToFolder(f.id, [track.id]);
-                        }
-                        setMenuPosition(null);
-                      }}
-                      className="w-full text-left px-2.5 py-1.5 hover:bg-emerald-500/20 hover:text-emerald-300 rounded-lg text-xs truncate text-slate-300 flex items-center gap-1.5"
-                    >
-                      <span className="text-xs">{f.icon || '📁'}</span>
-                      <span className="truncate">{f.name}</span>
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
+              <span className="font-medium text-xs">Add to Folder</span>
+            </div>
+            <span className="text-[10px] text-emerald-400/60 opacity-0 group-hover/btn:opacity-100 transition-opacity font-mono">...</span>
+          </button>
 
           {/* Remove from folder / Ungroup if assigned */}
           {assignedFolderIds && assignedFolderIds.length > 0 && (
@@ -401,6 +324,15 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           track={track}
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
+        />
+      )}
+
+      {collectionModalType && (
+        <AddToSubContextMenu
+          type={collectionModalType}
+          tracks={[track]}
+          isOpen={!!collectionModalType}
+          onClose={() => setCollectionModalType(null)}
         />
       )}
     </>
