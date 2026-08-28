@@ -24,7 +24,6 @@ import { QueueDrawer } from '../player/QueueDrawer';
 import { DuplicateModal } from '../library/DuplicateModal';
 import { DraggedTrackOverlay } from '../library/DraggedTrackOverlay';
 import { SettingsModal } from '../modals/SettingsModal';
-import { ImportUrlModal } from '../modals/ImportUrlModal';
 import { snapCenterToCursor } from '../../utils/dndModifiers';
 
 import {
@@ -50,7 +49,6 @@ export const AppShell: React.FC = () => {
   const [sortBy, setSortBy] = useState<'order' | 'title' | 'artist' | 'dateAdded' | 'playCount'>('order');
   const [sortDesc, setSortDesc] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isImportUrlOpen, setIsImportUrlOpen] = useState(false);
 
   const viewMode = settings?.viewMode || 'grid';
   const density = settings?.density || 'comfortable';
@@ -207,7 +205,6 @@ export const AppShell: React.FC = () => {
           sortDesc={sortDesc}
           onSortDescToggle={() => setSortDesc(!sortDesc)}
           onOpenFolder={(folderId) => setCurrentView(`/folders/${folderId}`)}
-          onOpenImportUrl={() => setIsImportUrlOpen(true)}
         />
       );
     }
@@ -228,7 +225,6 @@ export const AppShell: React.FC = () => {
           sortDesc={sortDesc}
           onSortDescToggle={() => setSortDesc(!sortDesc)}
           onOpenFolder={(folderId) => setCurrentView(`/folders/${folderId}`)}
-          onOpenImportUrl={() => setIsImportUrlOpen(true)}
         />
       );
     }
@@ -249,7 +245,6 @@ export const AppShell: React.FC = () => {
           sortDesc={sortDesc}
           onSortDescToggle={() => setSortDesc(!sortDesc)}
           onOpenFolder={(folderId) => setCurrentView(`/folders/${folderId}`)}
-          onOpenImportUrl={() => setIsImportUrlOpen(true)}
         />
       );
     }
@@ -270,7 +265,6 @@ export const AppShell: React.FC = () => {
           sortDesc={sortDesc}
           onSortDescToggle={() => setSortDesc(!sortDesc)}
           onOpenFolder={(folderId) => setCurrentView(`/folders/${folderId}`)}
-          onOpenImportUrl={() => setIsImportUrlOpen(true)}
         />
       );
     }
@@ -332,7 +326,6 @@ export const AppShell: React.FC = () => {
               density={density}
               onDensityChange={handleDensityChange}
               onFilesSelected={handleFilesSelected}
-              onOpenImportUrl={() => setIsImportUrlOpen(true)}
               onNavigateView={setCurrentView}
               onOpenSettings={() => setIsSettingsOpen(true)}
               currentView={currentView}
@@ -366,9 +359,6 @@ export const AppShell: React.FC = () => {
 
         {/* Settings Modal */}
         <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
-
-        {/* YouTube / URL Import Modal */}
-        <ImportUrlModal isOpen={isImportUrlOpen} onClose={() => setIsImportUrlOpen(false)} />
 
         {/* Duplicate Conflict Resolution Modal */}
         {currentConflict && (

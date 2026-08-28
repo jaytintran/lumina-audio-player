@@ -1,6 +1,5 @@
 import type { Track } from '../db/schema';
 import { readObjectUrl } from '../db/opfs';
-import { youtubePlayerService } from './youtubePlayerService';
 
 export class AudioEngine {
   private static instance: AudioEngine;
@@ -10,7 +9,6 @@ export class AudioEngine {
   private sourceNode: MediaElementAudioSourceNode | null = null;
   private isSourceConnected = false;
   private currentTrack: Track | null = null;
-  private isYouTubePlayback = false;
   private onTimeUpdateCallback?: (currentTime: number, duration: number) => void;
   private onEndedCallback?: () => void;
   private onErrorCallback?: (err: any) => void;
@@ -21,41 +19,16 @@ export class AudioEngine {
     this.audio.crossOrigin = 'anonymous';
 
     this.audio.addEventListener('timeupdate', () => {
-      if (!this.isYouTubePlayback) {
-        this.onTimeUpdateCallback?.(this.audio.currentTime, this.audio.duration || 0);
-      }
+      this.onTimeUpdateCallback?.(this.audio.currentTime, this.audio.duration || 0);
     });
 
     this.audio.addEventListener('ended', () => {
-      if (!this.isYouTubePlayback) {
-        this.onEndedCallback?.();
-      }
+      this.onEndedCallback?.();
     });
 
     this.audio.addEventListener('error', (e) => {
-      if (!this.isYouTubePlayback) {
-        console.error('Audio playback error:', e);
-        this.onErrorCallback?.(e);
-      }
-    });
-
-    // Configure YouTube player service callbacks
-    youtubePlayerService.setCallbacks({
-      onTimeUpdate: (current, duration) => {
-        if (this.isYouTubePlayback) {
-          this.onTimeUpdateCallback?.(current, duration);
-        }
-      },
-      onEnded: () => {
-        if (this.isYouTubePlayback) {
-          this.onEndedCallback?.();
-        }
-      },
-      onError: (err) => {
-        if (this.isYouTubePlayback) {
-          this.onErrorCallback?.(err);
-        }
-      },
+      console.error('Audio playback error:', e);
+      this.onErrorCallback?.(e);
     });
   }
 
@@ -92,23 +65,9 @@ export class AudioEngine {
   }
 
   public async loadAndPlay(track: Track, startTime = 0): Promise<void> {
+    this.initWebAudio();
     this.currentTrack = track;
 
-    // Check if this is an online YouTube stream
-    if (track.source === 'youtube' && track.youtubeId) {
-      // Pause local audio element
-      this.audio.pause();
-      this.isYouTubePlayback = true;
-      await youtubePlayerService.loadAndPlay(track.youtubeId, startTime);
-      this.updateMediaSession(track);
-      return;
-    }
-
-    // Local OPFS playback
-    this.isYouTubePlayback = false;
-    youtubePlayerService.pause();
-
-    this.initWebAudio();
     const audioUrl = await readObjectUrl(track.fileKey);
     if (!audioUrl) {
       throw new Error(`Audio file not found in OPFS: ${track.fileKey}`);
@@ -126,27 +85,15 @@ export class AudioEngine {
   }
 
   public async play(): Promise<void> {
-    if (this.isYouTubePlayback) {
-      youtubePlayerService.play();
-      return;
-    }
     this.initWebAudio();
     return this.audio.play();
   }
 
   public pause(): void {
-    if (this.isYouTubePlayback) {
-      youtubePlayerService.pause();
-      return;
-    }
     this.audio.pause();
   }
 
   public seek(seconds: number): void {
-    if (this.isYouTubePlayback) {
-      youtubePlayerService.seek(seconds);
-      return;
-    }
     if (!isNaN(seconds) && isFinite(seconds)) {
       this.audio.currentTime = Math.max(0, Math.min(seconds, this.audio.duration || 0));
     }
@@ -154,17 +101,14 @@ export class AudioEngine {
 
   public setVolume(volume: number): void {
     this.audio.volume = Math.max(0, Math.min(1, volume));
-    youtubePlayerService.setVolume(volume);
   }
 
   public setMuted(muted: boolean): void {
     this.audio.muted = muted;
-    youtubePlayerService.setMuted(muted);
   }
 
   public setPlaybackRate(rate: number): void {
     this.audio.playbackRate = rate;
-    youtubePlayerService.setPlaybackRate(rate);
   }
 
   public getCurrentTrack(): Track | null {

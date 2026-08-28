@@ -11,7 +11,6 @@ import {
   Plus,
   Layers,
   FolderMinus,
-  Video,
 } from 'lucide-react';
 import type { Track } from '../../db/schema';
 import { usePlayerStore } from '../../stores/playerStore';
@@ -20,7 +19,6 @@ import { usePlaylists } from '../../hooks/usePlaylists';
 import { useFolders, useTrackFolderIds } from '../../hooks/useFolders';
 import { db } from '../../db/db';
 import { deleteFile, readBlob } from '../../db/opfs';
-import { downloadYouTubeAudioToOPFS } from '../../services/youtubeService';
 import { EditTrackMetadataModal } from '../library/EditTrackMetadataModal';
 
 interface TrackContextMenuProps {
@@ -315,45 +313,13 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
             <span>Edit Metadata</span>
           </button>
 
-          {track.source === 'youtube' && track.youtubeId && (
-            <button
-              onClick={async () => {
-                setMenuPosition(null);
-                try {
-                  await downloadYouTubeAudioToOPFS(track);
-                } catch (e: any) {
-                  alert(e.message || 'Download failed');
-                }
-              }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 transition-colors text-left"
-            >
-              <Download className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Download for Offline</span>
-            </button>
-          )}
-
-          {track.youtubeId && (
-            <a
-              href={`https://www.youtube.com/watch?v=${track.youtubeId}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => setMenuPosition(null)}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-red-500/15 text-red-400 hover:text-red-300 transition-colors text-left"
-            >
-              <Video className="w-3.5 h-3.5 text-red-400" />
-              <span>Open in YouTube</span>
-            </a>
-          )}
-
-          {track.source !== 'youtube' && (
-            <button
-              onClick={handleExportAudio}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/5 transition-colors text-left"
-            >
-              <Download className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Export Audio File</span>
-            </button>
-          )}
+          <button
+            onClick={handleExportAudio}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/5 transition-colors text-left"
+          >
+            <Download className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Export Audio File</span>
+          </button>
 
           <div className="h-px bg-border my-1" />
 

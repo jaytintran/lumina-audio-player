@@ -1,6 +1,6 @@
 export type TrackPlaybackState = "idle" | "playing" | "paused";
 
-export type AudioFormat = "mp3" | "flac" | "wav" | "m4a" | "aac" | "ogg" | "webm" | "youtube";
+export type AudioFormat = "mp3" | "flac" | "wav" | "m4a" | "aac" | "ogg";
 
 export interface Track {
   id?: number;
@@ -24,10 +24,6 @@ export interface Track {
   tags: string[];
   order: number; // Global library sort order
   dateAdded: number;
-  // Online / YouTube fields:
-  source?: "local" | "youtube";
-  youtubeId?: string;
-  streamUrl?: string;
 }
 
 export interface Playlist {
@@ -95,6 +91,5 @@ export interface AppSettings {
   showTags: boolean;
   showPlayCount: boolean;
   hideGroupedTracks?: boolean;
-  youtubeProxyEndpoint?: string;
 }
 

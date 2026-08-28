@@ -11,7 +11,6 @@ import {
   Eye,
   EyeOff,
   ChevronDown,
-  Video,
 } from 'lucide-react';
 import type { Track } from '../../db/schema';
 import { useFolders, useAllFolderTrackIds } from '../../hooks/useFolders';
@@ -39,7 +38,6 @@ interface LibraryViewProps {
   sortDesc: boolean;
   onSortDescToggle: () => void;
   onOpenFolder?: (folderId: number) => void;
-  onOpenImportUrl?: () => void;
 }
 
 export const LibraryView: React.FC<LibraryViewProps> = ({
@@ -56,7 +54,6 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   sortDesc,
   onSortDescToggle,
   onOpenFolder,
-  onOpenImportUrl,
 }) => {
   const { data: settings } = useSettings();
   const updateSettings = useUpdateSettings();
@@ -145,26 +142,13 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
             <span>Download Sources</span>
           </div>
 
-          <div className="flex items-center gap-2">
-            {onOpenImportUrl && (
-              <button
-                onClick={onOpenImportUrl}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#0e141b] border border-red-500/30 hover:border-red-500/60 text-red-400 hover:text-red-300 text-[11px] font-medium transition-colors"
-                title="Import YouTube Audio or Stream URL"
-              >
-                <Video className="w-3.5 h-3.5 text-red-400" />
-                <span>Import URL</span>
-              </button>
-            )}
-
-            <button
-              onClick={() => setIsAddingSource(!isAddingSource)}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#0e141b] border border-[#1e2936] hover:border-[#2d3d50] text-slate-300 hover:text-white text-[11px] font-medium transition-colors"
-            >
-              <Plus className="w-3 h-3" />
-              <span>Add Source</span>
-            </button>
-          </div>
+          <button
+            onClick={() => setIsAddingSource(!isAddingSource)}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#0e141b] border border-[#1e2936] hover:border-[#2d3d50] text-slate-300 hover:text-white text-[11px] font-medium transition-colors"
+          >
+            <Plus className="w-3 h-3" />
+            <span>Add Source</span>
+          </button>
         </div>
 
         {/* Source Link Pills matching screenshot */}
