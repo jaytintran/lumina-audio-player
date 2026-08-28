@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Upload, Sparkles, Star, Check, Heart } from 'lucide-react';
+import { X, Upload, Sparkles, Star, Check, Heart, Plus } from 'lucide-react';
 import type { Track } from '../../db/schema';
 import { db } from '../../db/db';
 import { saveFile, calculateSHA256 } from '../../db/opfs';
 import { CoverArt } from '../common/CoverArt';
 import { generateRandomCoverBlob } from '../../utils/coverGenerator';
+import { useDistinctMetadata } from '../../hooks/useTracks';
+import { AutoSuggestInput } from '../common/AutoSuggestInput';
 
 interface EditTrackMetadataModalProps {
   track: Track;
@@ -19,6 +21,7 @@ export const EditTrackMetadataModal: React.FC<EditTrackMetadataModalProps> = ({
   onClose,
   onSaved,
 }) => {
+  const metaStats = useDistinctMetadata();
   const [title, setTitle] = useState(track.title);
   const [artist, setArtist] = useState(track.artist);
   const [album, setAlbum] = useState(track.album || '');
@@ -220,31 +223,27 @@ export const EditTrackMetadataModal: React.FC<EditTrackMetadataModalProps> = ({
               />
             </div>
 
-            {/* Artist & Album in 2 Columns */}
+            {/* Artist & Album in 2 Columns with Auto-Suggestions */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] text-slate-400 mb-1">Artist</label>
-                <input
-                  type="text"
-                  required
-                  value={artist}
-                  onChange={(e) => setArtist(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-[#141b24] border border-[#223040] text-xs text-slate-100 focus:outline-none focus:border-emerald-500/80 transition-colors"
-                />
-              </div>
+              <AutoSuggestInput
+                label="Artist"
+                required
+                value={artist}
+                onChange={setArtist}
+                suggestions={metaStats?.artists || []}
+                placeholder="Artist name"
+              />
 
-              <div>
-                <label className="block text-[11px] text-slate-400 mb-1">Album</label>
-                <input
-                  type="text"
-                  value={album}
-                  onChange={(e) => setAlbum(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-[#141b24] border border-[#223040] text-xs text-slate-100 focus:outline-none focus:border-emerald-500/80 transition-colors"
-                />
-              </div>
+              <AutoSuggestInput
+                label="Album"
+                value={album}
+                onChange={setAlbum}
+                suggestions={metaStats?.albums || []}
+                placeholder="Album name"
+              />
             </div>
 
-            {/* Year & Genre in 2 Columns */}
+            {/* Year & Genre in 2 Columns with Auto-Suggestions */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] text-slate-400 mb-1">Year</label>
@@ -257,16 +256,13 @@ export const EditTrackMetadataModal: React.FC<EditTrackMetadataModalProps> = ({
                 />
               </div>
 
-              <div>
-                <label className="block text-[11px] text-slate-400 mb-1">Genre</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Ambient, Classical"
-                  value={genre}
-                  onChange={(e) => setGenre(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-[#141b24] border border-[#223040] text-xs text-slate-100 focus:outline-none focus:border-emerald-500/80 transition-colors"
-                />
-              </div>
+              <AutoSuggestInput
+                label="Genre"
+                value={genre}
+                onChange={setGenre}
+                suggestions={metaStats?.genres || []}
+                placeholder="e.g. Ambient, Synthwave"
+              />
             </div>
 
             {/* Rating Section (stars + unrated/score label matching screenshot) */}
@@ -295,16 +291,19 @@ export const EditTrackMetadataModal: React.FC<EditTrackMetadataModalProps> = ({
               </div>
             </div>
 
-            {/* Tags (comma separated) */}
+            {/* Tags (comma separated) + Existing Tag Suggestions */}
             <div>
-              <label className="block text-[11px] text-slate-400 mb-1">Tags (comma separated)</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[11px] text-slate-400">Category Tags (press Enter or comma)</label>
+              </div>
+
               <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-lg bg-[#141b24] border border-[#223040] min-h-[38px] focus-within:border-emerald-500/80 transition-colors">
                 {tags.map((tag) => (
                   <span
                     key={tag}
                     className="flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-950/50 text-emerald-400 border border-emerald-500/30 text-[11px] font-medium"
                   >
-                    <span>{tag}</span>
+                    <span>#{tag}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveTag(tag)}
@@ -319,10 +318,32 @@ export const EditTrackMetadataModal: React.FC<EditTrackMetadataModalProps> = ({
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={handleAddTag}
-                  placeholder={tags.length === 0 ? 'e.g. ambient, relax, favorite' : ''}
+                  placeholder={tags.length === 0 ? 'e.g. ambient, relax, workout' : ''}
                   className="flex-1 min-w-[120px] bg-transparent text-xs text-slate-200 focus:outline-none placeholder-slate-500"
                 />
               </div>
+
+              {/* Tag Quick-Pick Suggestions Cloud */}
+              {metaStats?.tags && metaStats.tags.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  <span className="text-[10px] text-slate-500 font-medium">Suggestions:</span>
+                  {metaStats.tags
+                    .filter((t) => !tags.includes(t.value))
+                    .slice(0, 6)
+                    .map((t) => (
+                      <button
+                        key={t.value}
+                        type="button"
+                        onClick={() => setTags((prev) => [...prev, t.value])}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#111822] hover:bg-emerald-950/40 text-[10px] text-slate-400 hover:text-emerald-300 border border-[#1d2938] hover:border-emerald-500/40 transition-colors"
+                      >
+                        <Plus className="w-2.5 h-2.5" />
+                        <span>#{t.value}</span>
+                        <span className="text-[9px] text-slate-600 font-mono">({t.count})</span>
+                      </button>
+                    ))}
+                </div>
+              )}
             </div>
 
             {/* Favorite Checkbox */}

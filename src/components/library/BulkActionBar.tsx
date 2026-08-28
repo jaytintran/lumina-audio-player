@@ -17,6 +17,8 @@ import type { Track } from '../../db/schema';
 import { usePlayerStore } from '../../stores/playerStore';
 import { usePlaylists } from '../../hooks/usePlaylists';
 import { useFolders } from '../../hooks/useFolders';
+import { useDistinctMetadata } from '../../hooks/useTracks';
+import { AutoSuggestInput } from '../common/AutoSuggestInput';
 import { db } from '../../db/db';
 import { deleteFile } from '../../db/opfs';
 
@@ -40,6 +42,8 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
   const { addToQueue, currentTrack } = usePlayerStore();
   const { playlists, addTracksToPlaylist } = usePlaylists();
   const { ungroupTracks } = useFolders('view', 'home');
+
+  const metaStats = useDistinctMetadata();
 
   if (selectedTrackIds.size === 0) return null;
 
@@ -243,35 +247,26 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
 
             <form onSubmit={handleSaveBulkEdit} className="space-y-3.5">
               {/* Batch Artist Field */}
-              <div className="space-y-1.5">
-                <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
-                  <User className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Artist</span>
-                </label>
-                <input
-                  type="text"
-                  autoFocus
-                  value={bulkArtist}
-                  onChange={(e) => setBulkArtist(e.target.value)}
-                  placeholder="Leave blank to keep unchanged..."
-                  className="w-full px-3 py-2 rounded-xl bg-[#0e141b] border border-[#1e2936] text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
-                />
-              </div>
+              <AutoSuggestInput
+                label="Artist"
+                icon={<User className="w-3.5 h-3.5 text-emerald-400" />}
+                value={bulkArtist}
+                onChange={setBulkArtist}
+                suggestions={metaStats?.artists || []}
+                placeholder="Leave blank to keep unchanged..."
+                inputClassName="bg-[#0e141b] border-[#1e2936]"
+              />
 
               {/* Batch Genre Field */}
-              <div className="space-y-1.5">
-                <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
-                  <Music className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Genre</span>
-                </label>
-                <input
-                  type="text"
-                  value={bulkGenre}
-                  onChange={(e) => setBulkGenre(e.target.value)}
-                  placeholder="e.g. Ambient, Lo-Fi, Classical..."
-                  className="w-full px-3 py-2 rounded-xl bg-[#0e141b] border border-[#1e2936] text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
-                />
-              </div>
+              <AutoSuggestInput
+                label="Genre"
+                icon={<Music className="w-3.5 h-3.5 text-emerald-400" />}
+                value={bulkGenre}
+                onChange={setBulkGenre}
+                suggestions={metaStats?.genres || []}
+                placeholder="e.g. Ambient, Lo-Fi, Classical..."
+                inputClassName="bg-[#0e141b] border-[#1e2936]"
+              />
 
               {/* Batch Tags Field */}
               <div className="space-y-1.5">
@@ -286,6 +281,32 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
                   placeholder="e.g. Study, Chill, Instrumental..."
                   className="w-full px-3 py-2 rounded-xl bg-[#0e141b] border border-[#1e2936] text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
                 />
+
+                {/* Tag Quick-Pick Suggestions Cloud */}
+                {metaStats?.tags && metaStats.tags.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span className="text-[10px] text-slate-500">Popular:</span>
+                    {metaStats.tags.slice(0, 5).map((t) => (
+                      <button
+                        key={t.value}
+                        type="button"
+                        onClick={() => {
+                          const existing = bulkTags
+                            .split(',')
+                            .map((s) => s.trim())
+                            .filter(Boolean);
+                          if (!existing.includes(t.value)) {
+                            setBulkTags(existing.length > 0 ? `${existing.join(', ')}, ${t.value}` : t.value);
+                          }
+                        }}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#111822] hover:bg-emerald-950/40 text-[10px] text-slate-400 hover:text-emerald-300 border border-[#1d2938] hover:border-emerald-500/40 transition-colors"
+                      >
+                        <span>#{t.value}</span>
+                        <span className="text-[9px] text-slate-600 font-mono">({t.count})</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Modal Actions */}

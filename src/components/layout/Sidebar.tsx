@@ -7,6 +7,7 @@ import {
   Users,
   Disc,
   Tags,
+  Tag,
   Plus,
   Trash2,
   GripVertical,
@@ -331,20 +332,28 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
           onClick={() => onNavigate('/artists')}
         />
         <DroppableNavItem
-          id="albums"
-          label="Albums"
-          icon={Disc}
-          color="text-slate-400"
-          active={currentView === '/albums'}
-          onClick={() => onNavigate('/albums')}
-        />
-        <DroppableNavItem
           id="genres"
           label="Genres"
           icon={Tags}
           color="text-slate-400"
           active={currentView === '/genres'}
           onClick={() => onNavigate('/genres')}
+        />
+        <DroppableNavItem
+          id="tags"
+          label="Tags"
+          icon={Tag}
+          color="text-slate-400"
+          active={currentView === '/tags'}
+          onClick={() => onNavigate('/tags')}
+        />
+        <DroppableNavItem
+          id="albums"
+          label="Albums"
+          icon={Disc}
+          color="text-slate-400"
+          active={currentView === '/albums'}
+          onClick={() => onNavigate('/albums')}
         />
       </div>
     </aside>

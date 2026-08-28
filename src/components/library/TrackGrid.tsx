@@ -7,6 +7,7 @@ import { useMultiDeckStore } from '../../stores/multiDeckStore';
 import { useSettings } from '../../hooks/useSettings';
 import { CoverArt } from '../common/CoverArt';
 import { TrackContextMenu } from '../common/TrackContextMenu';
+import { TrackDropdown } from '../common/TrackDropdown';
 import { formatDuration } from '../../utils/formatters';
 import { db } from '../../db/db';
 
@@ -260,10 +261,13 @@ export const DraggableTrackCard: React.FC<TrackCardProps> = ({
                 </span>
               ))}
               {showPlayCount && (
-                <span className="px-1.5 py-0.5 rounded bg-blue-950/40 border border-blue-500/30 text-blue-300 font-mono ml-auto">
+                <span className="px-1.5 py-0.5 rounded bg-blue-950/40 border border-blue-500/30 text-blue-300 font-mono">
                   {track.playCount || 0} plays
                 </span>
               )}
+              <div className="ml-auto">
+                <TrackDropdown track={track} />
+              </div>
             </div>
           )}
         </div>

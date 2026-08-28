@@ -15,6 +15,7 @@ import { LibraryView } from '../views/LibraryView';
 import { ArtistsView } from '../views/ArtistsView';
 import { AlbumsView } from '../views/AlbumsView';
 import { GenresView } from '../views/GenresView';
+import { TagsView } from '../views/TagsView';
 import { PlaylistDetailView } from '../views/PlaylistDetailView';
 import { FolderDetailView } from '../views/FolderDetailView';
 import { PlayerBar } from '../player/PlayerBar';
@@ -273,12 +274,16 @@ export const AppShell: React.FC = () => {
       return <ArtistsView viewMode={viewMode} density={density} />;
     }
 
-    if (currentView === '/albums') {
-      return <AlbumsView viewMode={viewMode} density={density} />;
-    }
-
     if (currentView === '/genres') {
       return <GenresView viewMode={viewMode} density={density} />;
+    }
+
+    if (currentView === '/tags') {
+      return <TagsView viewMode={viewMode} density={density} />;
+    }
+
+    if (currentView === '/albums') {
+      return <AlbumsView viewMode={viewMode} density={density} />;
     }
 
     if (currentView.startsWith('/folders/')) {

@@ -82,6 +82,46 @@ export function useLibraryStats() {
   }, []);
 }
 
+export function useDistinctMetadata() {
+  return useLiveQuery(async () => {
+    const tracks = await db.tracks.toArray();
+    const artistCounts: { [val: string]: number } = {};
+    const albumCounts: { [val: string]: number } = {};
+    const genreCounts: { [val: string]: number } = {};
+    const tagCounts: { [val: string]: number } = {};
+
+    tracks.forEach((t) => {
+      const art = t.artist?.trim();
+      if (art) artistCounts[art] = (artistCounts[art] || 0) + 1;
+
+      const alb = t.album?.trim();
+      if (alb) albumCounts[alb] = (albumCounts[alb] || 0) + 1;
+
+      const gen = t.genre?.trim();
+      if (gen) genreCounts[gen] = (genreCounts[gen] || 0) + 1;
+
+      if (t.tags && Array.isArray(t.tags)) {
+        t.tags.forEach((tag) => {
+          const clean = tag.trim();
+          if (clean) tagCounts[clean] = (tagCounts[clean] || 0) + 1;
+        });
+      }
+    });
+
+    const toSortedList = (dict: { [k: string]: number }) =>
+      Object.entries(dict)
+        .map(([value, count]) => ({ value, count }))
+        .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
+
+    return {
+      artists: toSortedList(artistCounts),
+      albums: toSortedList(albumCounts),
+      genres: toSortedList(genreCounts),
+      tags: toSortedList(tagCounts),
+    };
+  }, []);
+}
+
 export function usePlaylistTracks(playlistId?: number) {
   return useLiveQuery(async () => {
     if (!playlistId) return [];
@@ -161,5 +201,29 @@ export function useGenreGroups() {
       trackCount: list.length,
       coverKey: list.find(t => !!t.coverKey)?.coverKey,
     })).sort((a, b) => a.genre.localeCompare(b.genre));
+  }, []);
+}
+
+export function useTagGroups() {
+  return useLiveQuery(async () => {
+    const tracks = await db.tracks.toArray();
+    const groups: { [tag: string]: Track[] } = {};
+
+    tracks.forEach(track => {
+      const tags = track.tags && track.tags.length > 0 ? track.tags : ['Untagged'];
+      tags.forEach(tag => {
+        const cleanTag = tag.trim();
+        if (!cleanTag) return;
+        if (!groups[cleanTag]) groups[cleanTag] = [];
+        groups[cleanTag].push(track);
+      });
+    });
+
+    return Object.entries(groups).map(([tag, list]) => ({
+      tag,
+      tracks: list,
+      trackCount: list.length,
+      coverKey: list.find(t => !!t.coverKey)?.coverKey,
+    })).sort((a, b) => a.tag.localeCompare(b.tag));
   }, []);
 }

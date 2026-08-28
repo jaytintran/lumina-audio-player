@@ -48,13 +48,33 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
     e.preventDefault();
     e.stopPropagation();
 
-    // Position menu within viewport bounds
-    const x = Math.min(e.clientX, window.innerWidth - 240);
-    const y = Math.min(e.clientY, window.innerHeight - 340);
+    // Initial position calculation with safe margins
+    const menuWidth = 230;
+    const menuHeight = 360;
+    const x = Math.max(10, Math.min(e.clientX, window.innerWidth - menuWidth - 10));
+    const y = Math.max(10, Math.min(e.clientY, window.innerHeight - menuHeight - 10));
     setMenuPosition({ x, y });
     setShowPlaylistsSub(false);
     setShowFoldersSub(false);
   };
+
+  useEffect(() => {
+    if (menuPosition && menuRef.current) {
+      const rect = menuRef.current.getBoundingClientRect();
+      let adjustedX = menuPosition.x;
+      let adjustedY = menuPosition.y;
+
+      if (rect.bottom > window.innerHeight - 10) {
+        adjustedY = Math.max(10, window.innerHeight - rect.height - 15);
+      }
+      if (rect.right > window.innerWidth - 10) {
+        adjustedX = Math.max(10, window.innerWidth - rect.width - 15);
+      }
+      if (adjustedX !== menuPosition.x || adjustedY !== menuPosition.y) {
+        setMenuPosition({ x: adjustedX, y: adjustedY });
+      }
+    }
+  }, [menuPosition?.x, menuPosition?.y]);
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -125,8 +145,9 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
         <div
           ref={menuRef}
           style={{ top: menuPosition.y, left: menuPosition.x }}
-          className="fixed z-50 w-56 glass-dropdown rounded-2xl p-1.5 shadow-2xl border border-border/80 text-xs text-foreground animate-in fade-in zoom-in-95 duration-150"
+          className="fixed z-50 w-56 bg-[#090d13] rounded-2xl p-1.5 shadow-2xl border border-[#17232e] text-xs text-slate-200 animate-in fade-in zoom-in-95 duration-150 max-h-[calc(100vh-20px)] overflow-y-auto custom-scrollbar"
         >
+          {/* Primary Action Group */}
           <button
             onClick={() => {
               playTrack(track);
@@ -189,6 +210,23 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
               <span className="font-medium text-xs">Add to Queue</span>
             </div>
             <span className="text-[10px] text-indigo-500/60 opacity-0 group-hover/btn:opacity-100 transition-opacity font-mono">+Queue</span>
+          </button>
+
+          {/* Edit Metadata option brought higher into the primary group */}
+          <button
+            onClick={() => {
+              setIsEditModalOpen(true);
+              setMenuPosition(null);
+            }}
+            className="group/btn w-full flex items-center justify-between px-3 py-2 rounded-xl bg-transparent hover:bg-indigo-500/15 hover:text-indigo-300 transition-all text-left"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="p-1 rounded-lg bg-indigo-500/10 group-hover/btn:bg-indigo-500/20 group-hover/btn:scale-110 transition-all text-indigo-400">
+                <Edit2 className="w-3.5 h-3.5" />
+              </div>
+              <span className="font-medium text-xs">Edit Metadata</span>
+            </div>
+            <span className="text-[10px] text-indigo-500/60 opacity-0 group-hover/btn:opacity-100 transition-opacity font-mono">Tags</span>
           </button>
 
           <div className="h-px bg-border my-1" />
@@ -301,17 +339,6 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           )}
 
           <div className="h-px bg-border my-1" />
-
-          <button
-            onClick={() => {
-              setIsEditModalOpen(true);
-              setMenuPosition(null);
-            }}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/5 transition-colors text-left"
-          >
-            <Edit2 className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Edit Metadata</span>
-          </button>
 
           <button
             onClick={handleExportAudio}
