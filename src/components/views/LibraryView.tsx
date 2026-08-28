@@ -10,6 +10,7 @@ import {
   X,
   Eye,
   EyeOff,
+  ChevronDown,
 } from 'lucide-react';
 import type { Track } from '../../db/schema';
 import { useFolders, useAllFolderTrackIds } from '../../hooks/useFolders';
@@ -36,6 +37,7 @@ interface LibraryViewProps {
   onSortChange: (sort: 'order' | 'title' | 'artist' | 'dateAdded' | 'playCount') => void;
   sortDesc: boolean;
   onSortDescToggle: () => void;
+  onOpenFolder?: (folderId: number) => void;
 }
 
 export const LibraryView: React.FC<LibraryViewProps> = ({
@@ -51,6 +53,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   onSortChange,
   sortDesc,
   onSortDescToggle,
+  onOpenFolder,
 }) => {
   const { data: settings } = useSettings();
   const updateSettings = useUpdateSettings();
@@ -67,6 +70,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   const [newSourceTitle, setNewSourceTitle] = useState('');
   const [newSourceUrl, setNewSourceUrl] = useState('');
   const [selectedTrackIds, setSelectedTrackIds] = useState<Set<number>>(new Set());
+  const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
 
   const { setNodeRef: setUngroupRef, isOver: isOverUngroup } = useDroppable({
     id: 'ungroup-drop-zone',
@@ -208,6 +212,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
           return (
             <div
               key={f.id}
+              onClick={() => f.id && onOpenFolder?.(f.id)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#090d12] border border-[#141d27] hover:border-emerald-500/50 text-xs text-slate-300 transition-colors cursor-pointer select-none"
             >
               <PillIconComp className="w-3.5 h-3.5 text-emerald-500" />
@@ -303,26 +308,95 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
             </>
           )}
 
-          {/* Sort Dropdown */}
-          <div className="flex items-center gap-1 bg-[#0d1218] border border-[#17232e] rounded-xl px-2.5 py-1.5 text-xs text-slate-300">
-            <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
-            <select
-              value={sortBy}
-              onChange={(e) => onSortChange(e.target.value as any)}
-              className="bg-transparent text-xs text-slate-200 focus:outline-none cursor-pointer"
-            >
-              <option value="order" className="bg-[#0d1218] text-slate-200">Custom Order</option>
-              <option value="title" className="bg-[#0d1218] text-slate-200">Title</option>
-              <option value="artist" className="bg-[#0d1218] text-slate-200">Artist</option>
-              <option value="dateAdded" className="bg-[#0d1218] text-slate-200">Date Added</option>
-              <option value="playCount" className="bg-[#0d1218] text-slate-200">Most Played</option>
-            </select>
+          {/* Cohesive Sort Pill & Direction Dropdown */}
+          <div className="relative">
             <button
-              onClick={onSortDescToggle}
-              className="ml-1 text-[10px] font-mono text-emerald-400 hover:underline"
+              onClick={() => setIsSortMenuOpen(!isSortMenuOpen)}
+              className="flex items-center gap-2 bg-[#0a0f15] hover:bg-[#0f1720] border border-[#16222f] hover:border-emerald-500/40 rounded-xl px-3 py-1.5 text-xs text-slate-300 transition-all shadow-sm group"
             >
-              {sortDesc ? 'DESC' : 'ASC'}
+              <ArrowUpDown className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+              <span className="font-medium">
+                {
+                  {
+                    order: 'Custom Order',
+                    title: 'Title',
+                    artist: 'Artist',
+                    dateAdded: 'Date Added',
+                    playCount: 'Most Played',
+                  }[sortBy]
+                }
+              </span>
+              <span className="text-[10px] font-mono font-bold text-emerald-400/90 bg-emerald-950/50 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                {sortDesc ? 'DESC' : 'ASC'}
+              </span>
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isSortMenuOpen ? 'rotate-180 text-emerald-400' : ''}`} />
             </button>
+
+            {isSortMenuOpen && (
+              <div
+                className="absolute right-0 top-full mt-2 w-52 bg-[#090d12] border border-[#17232e] rounded-2xl p-1.5 shadow-2xl z-50 text-xs animate-in fade-in zoom-in-95 duration-150"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-[#141d27] flex items-center justify-between">
+                  <span>Sort By</span>
+                  <span className="text-emerald-400">Order</span>
+                </div>
+
+                <div className="py-1 space-y-0.5">
+                  {[
+                    { id: 'order', label: 'Custom Order' },
+                    { id: 'title', label: 'Title' },
+                    { id: 'artist', label: 'Artist' },
+                    { id: 'dateAdded', label: 'Date Added' },
+                    { id: 'playCount', label: 'Most Played' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => {
+                        onSortChange(opt.id as any);
+                        setIsSortMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-left transition-colors ${
+                        sortBy === opt.id
+                          ? 'bg-emerald-500/15 text-emerald-300 font-semibold'
+                          : 'text-slate-300 hover:bg-[#121c27] hover:text-slate-100'
+                      }`}
+                    >
+                      <span>{opt.label}</span>
+                      {sortBy === opt.id && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Direction Switcher inside dropdown */}
+                <div className="pt-1.5 border-t border-[#141d27] mt-1 flex items-center gap-1 p-1">
+                  <button
+                    onClick={() => {
+                      if (sortDesc) onSortDescToggle();
+                    }}
+                    className={`flex-1 py-1 px-2 rounded-lg text-center font-mono text-[11px] font-semibold transition-all border ${
+                      !sortDesc
+                        ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                        : 'bg-[#0e141c] border-[#1a2636] text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Ascending (ASC)
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!sortDesc) onSortDescToggle();
+                    }}
+                    className={`flex-1 py-1 px-2 rounded-lg text-center font-mono text-[11px] font-semibold transition-all border ${
+                      sortDesc
+                        ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                        : 'bg-[#0e141c] border-[#1a2636] text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Descending (DESC)
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -342,6 +416,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
               selectedIds={selectedTrackIds}
               onSelectTrack={handleSelectTrack}
               onLongPressSelect={handleLongPressSelect}
+              onOpenFolder={onOpenFolder}
             />
           ))}
         </div>

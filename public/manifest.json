@@ -4,8 +4,8 @@
   "description": "Local-First Music Library & High-Fidelity Audio Player",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#060a0f",
-  "theme_color": "#10b981",
+  "background_color": "#080b0f",
+  "theme_color": "#080b0f",
   "orientation": "any",
   "icons": [
     {

@@ -16,6 +16,7 @@ import { ArtistsView } from '../views/ArtistsView';
 import { AlbumsView } from '../views/AlbumsView';
 import { GenresView } from '../views/GenresView';
 import { PlaylistDetailView } from '../views/PlaylistDetailView';
+import { FolderDetailView } from '../views/FolderDetailView';
 import { PlayerBar } from '../player/PlayerBar';
 import { MultiDeckTabBar } from '../player/MultiDeckTabBar';
 import { NowPlayingModal } from '../player/NowPlayingModal';
@@ -62,6 +63,7 @@ export const AppShell: React.FC = () => {
 
   // Drag-and-drop active state
   const [activeDragTrack, setActiveDragTrack] = useState<Track | null>(null);
+  const [dragSelectedCount, setDragSelectedCount] = useState<number>(0);
 
   // Import batch & conflict states
   const [isImporting, setIsImporting] = useState(false);
@@ -89,36 +91,44 @@ export const AppShell: React.FC = () => {
   // DND Handlers
   const handleDragStart = (event: DragStartEvent) => {
     const trackData = event.active.data.current?.track as Track | undefined;
+    const selectedIds = event.active.data.current?.selectedTrackIds as number[] | undefined;
     if (trackData) {
       setActiveDragTrack(trackData);
+      setDragSelectedCount(selectedIds && selectedIds.length > 1 ? selectedIds.length : 1);
     }
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveDragTrack(null);
+    setDragSelectedCount(0);
 
     if (!over) return;
 
     const track = active.data.current?.track as Track | undefined;
-    if (!track || !track.id) return;
+    const selectedIds = active.data.current?.selectedTrackIds as number[] | undefined;
+    const targetTrackIds = selectedIds && selectedIds.length > 0 ? selectedIds : track?.id ? [track.id] : [];
+
+    if (targetTrackIds.length === 0) return;
 
     const overId = String(over.id);
 
     // Dropped on a Sidebar Nav item
     if (overId === 'nav-favorites') {
-      await db.tracks.update(track.id, { isFavorite: true });
+      for (const tId of targetTrackIds) {
+        await db.tracks.update(tId, { isFavorite: true });
+      }
     } else if (overId === 'ungroup-drop-zone' || overId === 'all-songs-drop') {
-      await ungroupTracks([track.id]);
+      await ungroupTracks(targetTrackIds);
     } else if (overId.startsWith('playlist-drop-')) {
       const playlistId = parseInt(overId.replace('playlist-drop-', ''), 10);
       if (!isNaN(playlistId)) {
-        await addTracksToPlaylist(playlistId, [track.id]);
+        await addTracksToPlaylist(playlistId, targetTrackIds);
       }
     } else if (overId.startsWith('folder-')) {
       const folderId = parseInt(overId.replace('folder-', ''), 10);
       if (!isNaN(folderId)) {
-        await addTracksToFolder(folderId, [track.id]);
+        await addTracksToFolder(folderId, targetTrackIds);
       }
     }
   };
@@ -194,6 +204,7 @@ export const AppShell: React.FC = () => {
           onSortChange={setSortBy}
           sortDesc={sortDesc}
           onSortDescToggle={() => setSortDesc(!sortDesc)}
+          onOpenFolder={(folderId) => setCurrentView(`/folders/${folderId}`)}
         />
       );
     }
@@ -213,6 +224,7 @@ export const AppShell: React.FC = () => {
           onSortChange={setSortBy}
           sortDesc={sortDesc}
           onSortDescToggle={() => setSortDesc(!sortDesc)}
+          onOpenFolder={(folderId) => setCurrentView(`/folders/${folderId}`)}
         />
       );
     }
@@ -232,6 +244,7 @@ export const AppShell: React.FC = () => {
           onSortChange={setSortBy}
           sortDesc={sortDesc}
           onSortDescToggle={() => setSortDesc(!sortDesc)}
+          onOpenFolder={(folderId) => setCurrentView(`/folders/${folderId}`)}
         />
       );
     }
@@ -251,6 +264,7 @@ export const AppShell: React.FC = () => {
           onSortChange={setSortBy}
           sortDesc={sortDesc}
           onSortDescToggle={() => setSortDesc(!sortDesc)}
+          onOpenFolder={(folderId) => setCurrentView(`/folders/${folderId}`)}
         />
       );
     }
@@ -265,6 +279,18 @@ export const AppShell: React.FC = () => {
 
     if (currentView === '/genres') {
       return <GenresView viewMode={viewMode} density={density} />;
+    }
+
+    if (currentView.startsWith('/folders/')) {
+      const folderId = parseInt(currentView.replace('/folders/', ''), 10);
+      return (
+        <FolderDetailView
+          folderId={folderId}
+          viewMode={viewMode}
+          density={density}
+          onBack={() => setCurrentView('/')}
+        />
+      );
     }
 
     if (currentView.startsWith('/playlists/')) {
@@ -349,6 +375,7 @@ export const AppShell: React.FC = () => {
             <DraggedTrackOverlay
               track={activeDragTrack}
               viewMode={viewMode}
+              selectedCount={dragSelectedCount}
             />
           ) : null}
         </DragOverlay>

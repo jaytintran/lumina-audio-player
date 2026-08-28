@@ -248,11 +248,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
         />
       </div>
 
-      {/* Collections Section */}
+      {/* Playlists Section */}
       <div className="space-y-1 mb-6">
         <div className="flex items-center justify-between px-3 mb-2">
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-            Collections
+            Playlists
           </p>
           <button
             onClick={() => setIsCreatingPlaylist(true)}

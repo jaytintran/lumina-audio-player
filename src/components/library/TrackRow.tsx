@@ -18,6 +18,7 @@ interface TrackRowItemProps {
   density?: 'compact' | 'comfortable';
   isSelected?: boolean;
   isSelectionActive?: boolean;
+  selectedIds?: Set<number>;
   onSelect?: (trackId: number, e?: React.MouseEvent) => void;
   onLongPressSelect?: (trackId: number) => void;
 }
@@ -29,6 +30,7 @@ export const DraggableTrackRowItem: React.FC<TrackRowItemProps> = ({
   density = 'comfortable',
   isSelected = false,
   isSelectionActive = false,
+  selectedIds = new Set(),
   onSelect,
   onLongPressSelect,
 }) => {
@@ -46,9 +48,19 @@ export const DraggableTrackRowItem: React.FC<TrackRowItemProps> = ({
   const showGenre = settings?.showGenre ?? true;
   const showPlayCount = settings?.showPlayCount ?? false;
 
+  const dragSelectedTrackIds =
+    isSelected && selectedIds.size > 0
+      ? Array.from(selectedIds)
+      : track.id
+      ? [track.id]
+      : [];
+
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `track-${track.id}`,
-    data: { track },
+    data: {
+      track,
+      selectedTrackIds: dragSelectedTrackIds,
+    },
   });
 
   const isCurrent = currentTrack?.id === track.id;
@@ -328,6 +340,7 @@ export const TrackRowList: React.FC<TrackRowListProps> = ({
           density={density}
           isSelected={track.id ? selectedIds.has(track.id) : false}
           isSelectionActive={isSelectionActive}
+          selectedIds={selectedIds}
           onSelect={onSelectTrack}
           onLongPressSelect={onLongPressSelect || onSelectTrack}
         />

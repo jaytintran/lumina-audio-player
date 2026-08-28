@@ -23,6 +23,7 @@ interface FolderSectionProps {
   selectedIds?: Set<number>;
   onSelectTrack?: (trackId: number, e?: React.MouseEvent) => void;
   onLongPressSelect?: (trackId: number) => void;
+  onOpenFolder?: (folderId: number) => void;
 }
 
 export const FolderSection: React.FC<FolderSectionProps> = ({
@@ -32,6 +33,7 @@ export const FolderSection: React.FC<FolderSectionProps> = ({
   selectedIds,
   onSelectTrack,
   onLongPressSelect,
+  onOpenFolder,
 }) => {
   const tracks = useFolderTracks(folder.id!);
   const { toggleFolderCollapse, deleteFolder, updateFolder } = useFolders(folder.scopeType, folder.scopeId);
@@ -182,7 +184,7 @@ export const FolderSection: React.FC<FolderSectionProps> = ({
             )}
           </div>
 
-          {/* Folder Title (Direct seamless inline editing) */}
+          {/* Folder Title (Left-click opens view, Right-click triggers inline title editing) */}
           {isEditingTitle ? (
             <input
               type="text"
@@ -196,17 +198,24 @@ export const FolderSection: React.FC<FolderSectionProps> = ({
                 }
               }}
               onBlur={handleSaveTitle}
-              className="bg-transparent border-none outline-none font-bold text-sm text-slate-200 p-0 m-0 w-auto min-w-[60px] max-w-[240px] focus:ring-0"
+              className="bg-transparent border-none outline-none font-bold text-sm text-slate-100 p-0 m-0 w-auto min-w-[60px] max-w-[240px] focus:ring-0"
               style={{ width: `${Math.max(editedTitle.length, 1)}ch` }}
             />
           ) : (
             <span
               onClick={() => {
+                if (folder.id && onOpenFolder) {
+                  onOpenFolder(folder.id);
+                }
+              }}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 setEditedTitle(folder.name);
                 setIsEditingTitle(true);
               }}
-              className="font-bold text-sm text-slate-200 cursor-pointer truncate select-none"
-              title="Click to edit title"
+              className="font-bold text-sm text-slate-200 hover:text-emerald-400 cursor-pointer truncate select-none transition-colors"
+              title="Left-click to open folder • Right-click to edit name"
             >
               {folder.name}
             </span>

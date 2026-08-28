@@ -15,6 +15,7 @@ interface TrackCardProps {
   allTracks: Track[];
   isSelected?: boolean;
   isSelectionActive?: boolean;
+  selectedIds?: Set<number>;
   onSelect?: (trackId: number, e?: React.MouseEvent) => void;
   onLongPressSelect?: (trackId: number) => void;
 }
@@ -24,6 +25,7 @@ export const DraggableTrackCard: React.FC<TrackCardProps> = ({
   allTracks,
   isSelected = false,
   isSelectionActive = false,
+  selectedIds = new Set(),
   onSelect,
   onLongPressSelect,
 }) => {
@@ -42,9 +44,19 @@ export const DraggableTrackCard: React.FC<TrackCardProps> = ({
   const showTags = settings?.showTags ?? true;
   const showPlayCount = settings?.showPlayCount ?? false;
 
+  const dragSelectedTrackIds =
+    isSelected && selectedIds.size > 0
+      ? Array.from(selectedIds)
+      : track.id
+      ? [track.id]
+      : [];
+
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `track-${track.id}`,
-    data: { track },
+    data: {
+      track,
+      selectedTrackIds: dragSelectedTrackIds,
+    },
   });
 
   const isCurrent = currentTrack?.id === track.id;
@@ -307,6 +319,7 @@ export const TrackGrid: React.FC<TrackGridProps> = ({
           allTracks={tracks}
           isSelected={track.id ? selectedIds.has(track.id) : false}
           isSelectionActive={isSelectionActive}
+          selectedIds={selectedIds}
           onSelect={onSelectTrack}
           onLongPressSelect={onLongPressSelect || onSelectTrack}
         />
