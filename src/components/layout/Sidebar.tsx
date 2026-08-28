@@ -60,7 +60,7 @@ const DroppableNavItem: React.FC<NavItemProps> = ({
     <button
       ref={setNodeRef}
       onClick={onClick}
-      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[13px] font-medium transition-colors cursor-pointer ${
         isOver
           ? 'bg-[#0f241a] ring-2 ring-emerald-500 text-emerald-300 border border-emerald-500/60'
           : active
@@ -68,12 +68,12 @@ const DroppableNavItem: React.FC<NavItemProps> = ({
           : 'text-slate-400 hover:text-slate-100 hover:bg-[#0f1720] border border-transparent'
       }`}
     >
-      <div className="flex items-center gap-2.5 min-w-0">
-        <Icon className={`w-4 h-4 ${active ? 'text-emerald-400' : color}`} />
+      <div className="flex items-center gap-3 min-w-0">
+        <Icon className={`w-[17px] h-[17px] ${active ? 'text-emerald-400' : color}`} />
         <span className="truncate">{label}</span>
       </div>
       {count !== undefined && (
-        <span className="text-[10px] font-mono text-slate-500 bg-[#090d12] px-2 py-0.5 rounded-full border border-[#17232e]">
+        <span className="text-[11px] font-mono text-slate-500 bg-[#090d12] px-2 py-0.5 rounded-full border border-[#17232e]">
           {count}
         </span>
       )}
@@ -116,7 +116,7 @@ const SortablePlaylistItem: React.FC<SortablePlaylistItemProps> = ({
         setDroppableRef(node);
       }}
       style={style}
-      className={`group flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-colors ${
+      className={`group flex items-center justify-between px-3 py-2 rounded-xl text-[13px] font-medium transition-colors ${
         isOver
           ? 'bg-[#0f241a] ring-2 ring-emerald-500 text-emerald-300 border border-emerald-500/60'
           : active
@@ -129,11 +129,11 @@ const SortablePlaylistItem: React.FC<SortablePlaylistItemProps> = ({
         {...listeners}
         className="text-slate-600 hover:text-slate-300 cursor-grab active:cursor-grabbing p-1 opacity-0 group-hover:opacity-100 transition-opacity"
       >
-        <GripVertical className="w-3 h-3" />
+        <GripVertical className="w-3.5 h-3.5" />
       </div>
 
-      <div onClick={onClick} className="flex-1 min-w-0 flex items-center gap-2 cursor-pointer">
-        <Folder className={`w-3.5 h-3.5 ${active ? 'text-emerald-400' : 'text-emerald-500/70'}`} />
+      <div onClick={onClick} className="flex-1 min-w-0 flex items-center gap-2.5 cursor-pointer">
+        <Folder className={`w-4 h-4 ${active ? 'text-emerald-400' : 'text-emerald-500/70'}`} />
         <span className="truncate">{playlist.name}</span>
       </div>
 
@@ -145,7 +145,7 @@ const SortablePlaylistItem: React.FC<SortablePlaylistItemProps> = ({
         className="p-1 rounded-lg text-slate-500 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity"
         title="Delete playlist"
       >
-        <Trash2 className="w-3 h-3" />
+        <Trash2 className="w-3.5 h-3.5" />
       </button>
     </div>
   );
