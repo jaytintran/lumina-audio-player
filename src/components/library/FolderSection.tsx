@@ -100,13 +100,19 @@ export const FolderSection: React.FC<FolderSectionProps> = ({
           : 'border-[#17232e] bg-[#0a0f15]'
       }`}
     >
-      {/* Folder Header */}
-      <div className="flex items-center justify-between p-3 md:px-4 bg-[#0d131a] rounded-2xl border-b border-[#17232e]/60">
+      {/* Folder Header (Entire header is clickable to toggle collapse, while inner buttons stopPropagation) */}
+      <div
+        onClick={() => folder.id && toggleFolderCollapse(folder.id, isCollapsed)}
+        className="flex items-center justify-between p-3 md:px-4 bg-[#0d131a] rounded-2xl border-b border-[#17232e]/60 cursor-pointer hover:bg-[#101721] transition-colors select-none group/header"
+      >
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
           {/* Collapse Chevron Toggle */}
           <button
-            onClick={() => folder.id && toggleFolderCollapse(folder.id, isCollapsed)}
-            className="text-slate-400 hover:text-slate-200 p-0.5 rounded transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (folder.id) toggleFolderCollapse(folder.id, isCollapsed);
+            }}
+            className="text-slate-400 group-hover/header:text-emerald-400 p-0.5 rounded transition-colors"
             title={isCollapsed ? 'Expand folder' : 'Collapse folder'}
           >
             {isCollapsed ? (
@@ -123,7 +129,7 @@ export const FolderSection: React.FC<FolderSectionProps> = ({
                 e.stopPropagation();
                 setShowIconPicker(!showIconPicker);
               }}
-              className="relative p-1.5 rounded-lg bg-[#141d27] border border-[#1e2a38] text-emerald-400 hover:border-emerald-500/50 hover:bg-[#1a2533] transition-all flex items-center justify-center"
+              className="relative p-1.5 rounded-lg bg-[#141d27] border border-[#1e2936] text-emerald-400 hover:border-emerald-500/50 hover:bg-[#1a2533] transition-all flex items-center justify-center"
               title="Change folder icon"
             >
               <FolderIconComp className="w-4 h-4 text-emerald-400" />
@@ -136,7 +142,10 @@ export const FolderSection: React.FC<FolderSectionProps> = ({
 
             {/* 50 Lucide Icons Dropdown Grid */}
             {showIconPicker && (
-              <div className="absolute left-0 top-full mt-2 w-72 p-3 bg-[#0c1218] border border-[#1c2836] rounded-2xl shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="absolute left-0 top-full mt-2 w-72 p-3 bg-[#0c1218] border border-[#1c2836] rounded-2xl shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150"
+              >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-bold text-slate-200">Select Folder Icon</span>
                   <button
@@ -190,6 +199,7 @@ export const FolderSection: React.FC<FolderSectionProps> = ({
               type="text"
               autoFocus
               value={editedTitle}
+              onClick={(e) => e.stopPropagation()}
               onChange={(e) => setEditedTitle(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleSaveTitle();
@@ -203,7 +213,8 @@ export const FolderSection: React.FC<FolderSectionProps> = ({
             />
           ) : (
             <span
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 if (folder.id && onOpenFolder) {
                   onOpenFolder(folder.id);
                 }
@@ -222,7 +233,7 @@ export const FolderSection: React.FC<FolderSectionProps> = ({
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
           {tracks && tracks.length > 0 && (
             <button
               onClick={handlePlayAll}
