@@ -21,6 +21,7 @@ import { useSettings } from '../../hooks/useSettings';
 import { CoverArt } from '../common/CoverArt';
 import { StarRating } from '../common/StarRating';
 import { VisualizerCanvas } from './VisualizerCanvas';
+import { YouTubeMiniPlayer } from './YouTubeMiniPlayer';
 import { formatDuration, getAudioQualityBadge } from '../../utils/formatters';
 import { db } from '../../db/db';
 
@@ -133,9 +134,11 @@ export const NowPlayingModal: React.FC = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 min-h-0 flex flex-col md:flex-row items-center justify-center p-6 md:p-12 gap-8 md:gap-12 overflow-y-auto">
-        {/* Left / Center: Artwork & Vinyl Visual */}
-        <div className="relative flex flex-col items-center justify-center w-full max-w-md aspect-square shrink-0">
-          {artworkMode === 'vinyl' ? (
+        {/* Left / Center: Artwork, Video or Vinyl Visual */}
+        <div className="relative flex flex-col items-center justify-center w-full max-w-md shrink-0">
+          {currentTrack.source === 'youtube' && currentTrack.youtubeId ? (
+            <YouTubeMiniPlayer className="w-full max-w-md" />
+          ) : artworkMode === 'vinyl' ? (
             <div className="relative w-64 h-64 md:w-80 md:h-80 flex items-center justify-center">
               {/* Outer Vinyl Disc */}
               <div

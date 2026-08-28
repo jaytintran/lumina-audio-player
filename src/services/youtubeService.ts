@@ -22,24 +22,27 @@ export function extractYouTubeId(url: string): string | null {
     return trimmed;
   }
 
-  // Matching standard youtube.com, youtu.be, music.youtube.com, embeds, shorts
-  const patterns = [
-    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
-    /(?:https?:\/\/)?(?:www\.)?youtu\.be\/([a-zA-Z0-9_-]{11})/,
-    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
-    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/v\/([a-zA-Z0-9_-]{11})/,
-    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
-    /(?:https?:\/\/)?music\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
-  ];
-
-  for (const pattern of patterns) {
-    const match = trimmed.match(pattern);
-    if (match && match[1]) {
-      return match[1];
+  try {
+    const parsed = new URL(trimmed.startsWith('http') ? trimmed : `https://${trimmed}`);
+    if (parsed.hostname.includes('youtube.com')) {
+      const v = parsed.searchParams.get('v');
+      if (v && /^[a-zA-Z0-9_-]{11}$/.test(v)) return v;
+      
+      const pathParts = parsed.pathname.split('/').filter(Boolean);
+      if (pathParts[0] === 'embed' || pathParts[0] === 'v' || pathParts[0] === 'shorts') {
+        if (pathParts[1] && /^[a-zA-Z0-9_-]{11}$/.test(pathParts[1])) return pathParts[1];
+      }
     }
-  }
 
-  return null;
+    if (parsed.hostname === 'youtu.be' || parsed.hostname.endsWith('.youtu.be')) {
+      const id = parsed.pathname.replace(/^\//, '').split(/[?#]/)[0];
+      if (/^[a-zA-Z0-9_-]{11}$/.test(id)) return id;
+    }
+  } catch {}
+
+  // Regex Fallback
+  const match = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
+  return match ? match[1] : null;
 }
 
 /**
@@ -129,4 +132,90 @@ export async function importYouTubeTrack(
 
   const id = await db.tracks.add(newTrack);
   return { ...newTrack, id: id as number };
+}
+
+/**
+ * Downloads audio stream from a YouTube video into OPFS via configured companion or public Cobalt/Invidious proxy.
+ */
+export async function downloadYouTubeAudioToOPFS(
+  track: Track,
+  customEndpoint?: string,
+  onProgress?: (msg: string) => void
+): Promise<Track> {
+  if (!track.youtubeId) {
+    throw new Error('Track has no YouTube ID');
+  }
+
+  onProgress?.('Resolving audio stream...');
+
+  const videoUrl = `https://www.youtube.com/watch?v=${track.youtubeId}`;
+  
+  // Array of public extractor endpoints to try
+  const endpoints = [
+    customEndpoint?.trim(),
+    'https://cobalt-api.kwiatekm.pl',
+    'https://api.cobalt.tools',
+    'https://invidious.nerdvpn.de/api/v1',
+    'https://yewtu.be/api/v1',
+  ].filter(Boolean) as string[];
+
+  let audioBlob: Blob | null = null;
+
+  for (const endpoint of endpoints) {
+    try {
+      onProgress?.(`Contacting extractor: ${new URL(endpoint).hostname}...`);
+      
+      // Try Cobalt API format
+      const cobaltRes = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: videoUrl,
+          downloadMode: 'audio',
+          audioFormat: 'mp3',
+        }),
+      });
+
+      if (cobaltRes.ok) {
+        const cobaltData = await cobaltRes.json();
+        const directUrl = cobaltData.url || cobaltData.audio;
+        if (directUrl) {
+          onProgress?.('Downloading audio stream to OPFS...');
+          const streamRes = await fetch(directUrl);
+          if (streamRes.ok) {
+            audioBlob = await streamRes.blob();
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn(`Extraction failed on endpoint ${endpoint}:`, e);
+    }
+  }
+
+  if (!audioBlob) {
+    throw new Error(
+      'Could not extract audio automatically. You can specify a custom companion endpoint in Settings -> Storage & Privacy.'
+    );
+  }
+
+  onProgress?.('Saving audio file to local OPFS...');
+  const fileKey = `audio/yt_${track.youtubeId}.mp3`;
+  await saveFile(fileKey, audioBlob);
+
+  const updatedFields: Partial<Track> = {
+    fileKey,
+    format: 'mp3',
+    source: 'local',
+  };
+
+  if (track.id) {
+    await db.tracks.update(track.id, updatedFields);
+  }
+
+  onProgress?.('Saved for offline playback!');
+  return { ...track, ...updatedFields };
 }

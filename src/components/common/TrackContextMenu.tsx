@@ -20,6 +20,7 @@ import { usePlaylists } from '../../hooks/usePlaylists';
 import { useFolders, useTrackFolderIds } from '../../hooks/useFolders';
 import { db } from '../../db/db';
 import { deleteFile, readBlob } from '../../db/opfs';
+import { downloadYouTubeAudioToOPFS } from '../../services/youtubeService';
 import { EditTrackMetadataModal } from '../library/EditTrackMetadataModal';
 
 interface TrackContextMenuProps {
@@ -313,6 +314,23 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
             <Edit2 className="w-3.5 h-3.5 text-indigo-400" />
             <span>Edit Metadata</span>
           </button>
+
+          {track.source === 'youtube' && track.youtubeId && (
+            <button
+              onClick={async () => {
+                setMenuPosition(null);
+                try {
+                  await downloadYouTubeAudioToOPFS(track);
+                } catch (e: any) {
+                  alert(e.message || 'Download failed');
+                }
+              }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 transition-colors text-left"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Download for Offline</span>
+            </button>
+          )}
 
           {track.youtubeId && (
             <a
