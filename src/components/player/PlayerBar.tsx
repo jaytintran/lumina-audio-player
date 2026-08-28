@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Play,
   Pause,
@@ -12,15 +12,18 @@ import {
   Heart,
   ListMusic,
   Maximize2,
+  ChevronUp,
 } from 'lucide-react';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useSettings } from '../../hooks/useSettings';
 import { CoverArt } from '../common/CoverArt';
+import { AudioDetailsModal } from '../library/AudioDetailsModal';
 import { formatDuration } from '../../utils/formatters';
 
 export const PlayerBar: React.FC = () => {
   const { data: settings } = useSettings();
   const showBitrate = settings?.showBitrate ?? true;
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   const {
     currentTrack,
@@ -53,8 +56,18 @@ export const PlayerBar: React.FC = () => {
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#080b0f] border-t border-[#17232e] px-4 py-2.5 shadow-2xl">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+    <>
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#080b0f] border-t border-[#17232e] px-4 pt-3.5 pb-2.5 shadow-2xl">
+        {/* Elevated Details / Notes Tab Handle on top border */}
+        <button
+          onClick={() => setIsDetailsOpen(true)}
+          className="absolute left-1/2 -translate-x-1/2 -top-4 z-50 h-4 px-3 rounded-t-lg bg-[#080b0f] border-t border-x border-[#17232e] hover:border-emerald-500/60 text-slate-500 hover:text-emerald-400 flex items-center justify-center shadow-md hover:h-5 hover:-top-5 transition-all group cursor-pointer"
+          title="Audio Details & Notes (Markdown)"
+        >
+          <ChevronUp className="w-3.5 h-3.5 group-hover:-translate-y-0.5 transition-transform" />
+        </button>
+
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         {/* Left: Track Information & Artwork */}
         <div className="flex items-center gap-3 min-w-0 w-1/4">
           <div
@@ -230,5 +243,14 @@ export const PlayerBar: React.FC = () => {
         </div>
       </div>
     </div>
-  );
+
+    {isDetailsOpen && currentTrack && (
+      <AudioDetailsModal
+        track={currentTrack}
+        isOpen={isDetailsOpen}
+        onClose={() => setIsDetailsOpen(false)}
+      />
+    )}
+  </>
+);
 };

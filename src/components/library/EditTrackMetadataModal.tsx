@@ -7,6 +7,7 @@ import { CoverArt } from '../common/CoverArt';
 import { generateRandomCoverBlob } from '../../utils/coverGenerator';
 import { useDistinctMetadata } from '../../hooks/useTracks';
 import { AutoSuggestInput } from '../common/AutoSuggestInput';
+import { MarkdownRenderer } from '../common/MarkdownRenderer';
 
 interface EditTrackMetadataModalProps {
   track: Track;
@@ -31,6 +32,8 @@ export const EditTrackMetadataModal: React.FC<EditTrackMetadataModalProps> = ({
   const [rating, setRating] = useState(track.rating || 0);
   const [tags, setTags] = useState<string[]>(track.tags || []);
   const [tagInput, setTagInput] = useState('');
+  const [description, setDescription] = useState(track.description || '');
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [isFavorite, setIsFavorite] = useState(track.isFavorite || false);
   const [coverKey, setCoverKey] = useState(track.coverKey);
   const [isProcessingCover, setIsProcessingCover] = useState(false);
@@ -48,6 +51,7 @@ export const EditTrackMetadataModal: React.FC<EditTrackMetadataModalProps> = ({
     setGenre(track.genre || '');
     setRating(track.rating || 0);
     setTags(track.tags || []);
+    setDescription(track.description || '');
     setIsFavorite(track.isFavorite || false);
     setCoverKey(track.coverKey);
   }, [track]);
@@ -62,7 +66,7 @@ export const EditTrackMetadataModal: React.FC<EditTrackMetadataModalProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, title, artist, album, albumArtist, year, genre, rating, tags, isFavorite, coverKey]);
+  }, [isOpen, title, artist, album, albumArtist, year, genre, rating, tags, description, isFavorite, coverKey]);
 
   if (!isOpen) return null;
 
@@ -128,6 +132,7 @@ export const EditTrackMetadataModal: React.FC<EditTrackMetadataModalProps> = ({
         genre: genre.trim() || undefined,
         rating,
         tags,
+        description: description.trim() || undefined,
         isFavorite,
         coverKey,
       };
@@ -342,6 +347,82 @@ export const EditTrackMetadataModal: React.FC<EditTrackMetadataModalProps> = ({
                         <span className="text-[9px] text-slate-600 font-mono">({t.count})</span>
                       </button>
                     ))}
+                </div>
+              )}
+            </div>
+
+            {/* Description / Notes (Markdown) Editor Section */}
+            <div className="space-y-1.5 pt-1">
+              <div className="flex items-center justify-between">
+                <label className="block text-[11px] text-slate-400">
+                  Description / Notes <span className="text-slate-500">(Markdown Supported)</span>
+                </label>
+                <div className="flex items-center gap-1 bg-[#101720] border border-[#1f2c3d] p-0.5 rounded-lg text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() => setIsPreviewMode(false)}
+                    className={`px-2 py-0.5 rounded-md font-medium transition-colors ${
+                      !isPreviewMode ? 'bg-emerald-500/20 text-emerald-300' : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Write
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsPreviewMode(true)}
+                    className={`px-2 py-0.5 rounded-md font-medium transition-colors ${
+                      isPreviewMode ? 'bg-emerald-500/20 text-emerald-300' : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Preview
+                  </button>
+                </div>
+              </div>
+
+              {!isPreviewMode ? (
+                <div className="space-y-1">
+                  <textarea
+                    rows={4}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Write detailed notes, prompts, affirmations, track story, or timestamps (e.g. 01:23 - drop)..."
+                    className="w-full px-3 py-2 rounded-lg bg-[#141b24] border border-[#223040] text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500/80 transition-colors custom-scrollbar font-sans"
+                  />
+                  <div className="flex flex-wrap items-center gap-1 text-[10px] text-slate-500">
+                    <span>Quick Format:</span>
+                    <button
+                      type="button"
+                      onClick={() => setDescription((prev) => `${prev} **bold**`)}
+                      className="px-1.5 py-0.5 rounded bg-[#101720] border border-[#1f2c3d] text-slate-400 hover:text-emerald-300"
+                    >
+                      **bold**
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDescription((prev) => `${prev}\n- list item`)}
+                      className="px-1.5 py-0.5 rounded bg-[#101720] border border-[#1f2c3d] text-slate-400 hover:text-emerald-300"
+                    >
+                      - list
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDescription((prev) => `${prev}\n- [ ] task`)}
+                      className="px-1.5 py-0.5 rounded bg-[#101720] border border-[#1f2c3d] text-slate-400 hover:text-emerald-300"
+                    >
+                      [ ] task
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDescription((prev) => `${prev}\n00:00 - start`)}
+                      className="px-1.5 py-0.5 rounded bg-[#101720] border border-[#1f2c3d] text-slate-400 hover:text-emerald-300"
+                    >
+                      00:00 timestamp
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 rounded-lg bg-[#0e141c] border border-[#223040] min-h-[100px] max-h-48 overflow-y-auto custom-scrollbar">
+                  <MarkdownRenderer content={description} />
                 </div>
               )}
             </div>

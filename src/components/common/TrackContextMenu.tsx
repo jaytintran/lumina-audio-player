@@ -10,6 +10,7 @@ import {
   Trash2,
   Layers,
   FolderMinus,
+  FileText,
 } from 'lucide-react';
 import type { Track } from '../../db/schema';
 import { usePlayerStore } from '../../stores/playerStore';
@@ -18,6 +19,7 @@ import { useFolders, useTrackFolderIds } from '../../hooks/useFolders';
 import { db } from '../../db/db';
 import { deleteFile, readBlob } from '../../db/opfs';
 import { EditTrackMetadataModal } from '../library/EditTrackMetadataModal';
+import { AudioDetailsModal } from '../library/AudioDetailsModal';
 import { AddToSubContextMenu } from '../modals/AddToSubContextMenu';
 
 interface TrackContextMenuProps {
@@ -34,6 +36,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
   const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
   const [collectionModalType, setCollectionModalType] = useState<'playlist' | 'folder' | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const { playTrack, addToQueue, playNext } = usePlayerStore();
@@ -196,6 +199,23 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
               <span className="font-medium text-xs">Add to Queue</span>
             </div>
             <span className="text-[10px] text-indigo-500/60 opacity-0 group-hover/btn:opacity-100 transition-opacity font-mono">+Queue</span>
+          </button>
+
+          {/* View Details & Notes option */}
+          <button
+            onClick={() => {
+              setIsDetailsModalOpen(true);
+              setMenuPosition(null);
+            }}
+            className="group/btn w-full flex items-center justify-between px-3 py-2 rounded-xl bg-transparent hover:bg-emerald-500/15 hover:text-emerald-300 transition-all text-left"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="p-1 rounded-lg bg-emerald-500/10 group-hover/btn:bg-emerald-500/20 group-hover/btn:scale-110 transition-all text-emerald-400">
+                <FileText className="w-3.5 h-3.5" />
+              </div>
+              <span className="font-medium text-xs">View Details & Notes</span>
+            </div>
+            <span className="text-[10px] text-emerald-500/60 opacity-0 group-hover/btn:opacity-100 transition-opacity font-mono">Info</span>
           </button>
 
           {/* Edit Metadata option */}
@@ -368,6 +388,14 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           track={track}
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
+        />
+      )}
+
+      {isDetailsModalOpen && (
+        <AudioDetailsModal
+          track={track}
+          isOpen={isDetailsModalOpen}
+          onClose={() => setIsDetailsModalOpen(false)}
         />
       )}
     </>

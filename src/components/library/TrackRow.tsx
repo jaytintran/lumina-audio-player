@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Play, Pause, Heart, Music, Star, Check } from 'lucide-react';
+import { Play, Pause, Heart, Music, Star, Check, FileText } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
 import type { Track } from '../../db/schema';
 import { usePlayerStore } from '../../stores/playerStore';
@@ -259,6 +259,16 @@ export const DraggableTrackRowItem: React.FC<TrackRowItemProps> = ({
                 <span>{track.rating > 0 ? track.rating : 5}</span>
                 <Star className="w-2.5 h-2.5 fill-yellow-400" />
               </div>
+            )}
+
+            {track.description && (
+              <span
+                className="px-1.5 py-0.2 rounded bg-emerald-950/40 border border-emerald-500/30 text-[9px] font-medium text-emerald-400 flex items-center gap-0.5"
+                title="Has Markdown Notes"
+              >
+                <FileText className="w-2.5 h-2.5" />
+                <span>Notes</span>
+              </span>
             )}
 
             {showPlayCount && (

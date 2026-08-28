@@ -22,6 +22,7 @@ export interface Track {
   playCount: number;
   lastPlayed?: number;
   tags: string[];
+  description?: string;
   order: number; // Global library sort order
   dateAdded: number;
 }
