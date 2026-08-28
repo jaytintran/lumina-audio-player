@@ -11,6 +11,7 @@ import {
   Check,
   ShieldCheck,
   RotateCw,
+  Globe,
 } from 'lucide-react';
 import { db, getAppSettings, updateAppSettings } from '../../db/db';
 import type { AppSettings } from '../../db/schema';
@@ -380,6 +381,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   <p className="text-[11px] text-slate-400 leading-relaxed">
                     Stores {trackCount} {trackCount === 1 ? 'audio track' : 'audio tracks'}, cached metadata, playlists, and OPFS files. Storage dynamically grows on your disk as more songs are imported.
                   </p>
+                </div>
+              </div>
+
+              {/* YouTube & Stream Configuration */}
+              <div className="p-4 rounded-2xl bg-[#0d131a] border border-[#17232e] space-y-3">
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-red-400" />
+                  <span className="font-bold text-slate-200">YouTube & Online Audio</span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  YouTube audio is streamed client-side via YouTube IFrame API. You can optionally specify a companion audio proxy/extractor URL (e.g. self-hosted Cobalt, Piped, or yt-dlp sidecar) for downloading raw audio files into OPFS.
+                </p>
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">Companion Extractor Endpoint (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. https://api.cobalt.tools or http://localhost:5000"
+                    value={settings.youtubeProxyEndpoint || ''}
+                    onChange={(e) => handleUpdate({ youtubeProxyEndpoint: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-[#080b0f] border border-[#1c2836] text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-red-500"
+                  />
                 </div>
               </div>
 

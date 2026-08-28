@@ -14,7 +14,7 @@ export class LuminaAudioDatabase extends Dexie {
     super('LuminaAudioDB');
 
     this.version(1).stores({
-      tracks: '++id, title, artist, album, genre, format, fileHash, isFavorite, rating, playCount, lastPlayed, order, dateAdded, *tags',
+      tracks: '++id, title, artist, album, genre, format, fileHash, isFavorite, rating, playCount, lastPlayed, order, dateAdded, *tags, youtubeId, source',
       playlists: '++id, name, order, createdAt',
       folders: '++id, name, scopeType, scopeId, order',
       sources: '++id, title, url, order',
@@ -50,6 +50,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   showTags: true,
   showPlayCount: false,
   hideGroupedTracks: false,
+  youtubeProxyEndpoint: '',
 };
 
 // Pure read-only query (safe for useLiveQuery context)

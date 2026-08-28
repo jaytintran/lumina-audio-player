@@ -12,6 +12,7 @@ import {
   Flame,
   CheckCircle2,
   Settings,
+  Video,
 } from 'lucide-react';
 import { StatCard } from './StatCard';
 import { useLibraryStats } from '../../hooks/useTracks';
@@ -24,6 +25,7 @@ interface HeaderProps {
   density: 'compact' | 'comfortable';
   onDensityChange: (density: 'compact' | 'comfortable') => void;
   onFilesSelected: (files: File[]) => void;
+  onOpenImportUrl?: () => void;
   onNavigateView: (view: string) => void;
   onOpenSettings: () => void;
   currentView: string;
@@ -35,6 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
   viewMode,
   onViewModeChange,
   onFilesSelected,
+  onOpenImportUrl,
   onNavigateView,
   onOpenSettings,
   currentView,
@@ -59,28 +62,25 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex md:hidden items-center gap-2 shrink-0">
           <img
             src="/logo.svg"
-            alt="Lumina Player"
-            className="w-7 h-7 rounded-lg border border-[#16222f]"
+            alt="Lumina Logo"
+            className="w-8 h-8 rounded-lg border border-[#16222f]"
           />
-          <span className="font-extrabold text-xs tracking-wider text-emerald-400">
-            LUMINA
-          </span>
         </div>
 
-        {/* Search Bar matching screenshot */}
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+        {/* Search Bar */}
+        <div className="relative flex-1 max-w-md">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
+            placeholder="Search titles, artists, albums, or category tags..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search library..."
-            className="w-full pl-9 pr-8 py-2 rounded-xl bg-[#0d1218] text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 border border-[#17232e] transition-colors"
+            className="w-full pl-9 pr-8 py-2 rounded-2xl bg-[#090d12] border border-[#17232e] text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500/60 transition-colors"
           />
           {searchQuery && (
             <button
               onClick={() => onSearchChange('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-200"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -89,6 +89,18 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action icons in top right matching screenshot */}
         <div className="flex items-center gap-2">
+          {/* Import YouTube / URL Button */}
+          {onOpenImportUrl && (
+            <button
+              onClick={onOpenImportUrl}
+              className="p-2 rounded-xl bg-[#0d1218] border border-[#17232e] text-red-400/90 hover:text-red-400 hover:border-red-500/40 hover:bg-red-950/20 transition-all flex items-center gap-1.5"
+              title="Import YouTube Audio / URL"
+            >
+              <Video className="w-4 h-4 text-red-400" />
+              <span className="hidden md:inline text-xs font-semibold text-slate-300">Import URL</span>
+            </button>
+          )}
+
           {/* Import Files Button */}
           <input
             ref={fileInputRef}
