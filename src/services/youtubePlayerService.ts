@@ -13,14 +13,14 @@ class YouTubePlayerService {
   private player: any = null;
   private currentVideoId: string | null = null;
   private pollTimer: NodeJS.Timeout | null = null;
+  private isApiScriptAppended = false;
 
   private onTimeUpdateCallback?: YouTubeTimeUpdate;
   private onEndedCallback?: () => void;
   private onErrorCallback?: (err: any) => void;
 
   private constructor() {
-    this.ensureContainer();
-    this.loadIframeAPI();
+    // Lazy initialisation on first user play
   }
 
   public static getInstance(): YouTubePlayerService {
@@ -30,66 +30,25 @@ class YouTubePlayerService {
     return YouTubePlayerService.instance;
   }
 
-  private ensureContainer(): void {
-    if (typeof document === 'undefined') return;
-    let container = document.getElementById('lumina-yt-container') as HTMLDivElement | null;
-    if (!container) {
-      container = document.createElement('div');
-      container.id = 'lumina-yt-container';
-      // Visible to browser compositing engine so audio decoding is never throttled,
-      // but clipped to 1px on edge so it is completely invisible to user
-      container.style.position = 'fixed';
-      container.style.bottom = '0px';
-      container.style.right = '0px';
-      container.style.width = '200px';
-      container.style.height = '200px';
-      container.style.clipPath = 'inset(100%)';
-      container.style.pointerEvents = 'none';
-      container.style.zIndex = '-9999';
-
-      const playerDiv = document.createElement('div');
-      playerDiv.id = 'lumina-yt-player';
-      container.appendChild(playerDiv);
-      document.body.appendChild(container);
-    }
-  }
-
-  private loadIframeAPI(): Promise<void> {
+  private ensureIframe(videoId: string, startTime = 0): Promise<void> {
     return new Promise((resolve) => {
-      if (window.YT && window.YT.Player) {
-        resolve();
-        return;
+      let container = document.getElementById('lumina-yt-container') as HTMLDivElement | null;
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'lumina-yt-container';
+        // Render 200x200 off-screen with opacity 0.01 so browser media subsystem executes fully
+        container.style.position = 'fixed';
+        container.style.bottom = '0px';
+        container.style.right = '0px';
+        container.style.width = '240px';
+        container.style.height = '160px';
+        container.style.opacity = '0.01';
+        container.style.pointerEvents = 'none';
+        container.style.zIndex = '-9999';
+        document.body.appendChild(container);
       }
 
-      const existingScript = document.getElementById('youtube-iframe-api-script');
-      if (!existingScript) {
-        const tag = document.createElement('script');
-        tag.id = 'youtube-iframe-api-script';
-        tag.src = 'https://www.youtube.com/iframe_api';
-        const firstScriptTag = document.getElementsByTagName('script')[0];
-        firstScriptTag?.parentNode?.insertBefore(tag, firstScriptTag);
-      }
-
-      const checkInterval = setInterval(() => {
-        if (window.YT && window.YT.Player) {
-          clearInterval(checkInterval);
-          resolve();
-        }
-      }, 50);
-
-      const prevReady = window.onYouTubeIframeAPIReady;
-      window.onYouTubeIframeAPIReady = () => {
-        prevReady?.();
-        clearInterval(checkInterval);
-        resolve();
-      };
-    });
-  }
-
-  private initPlayer(videoId: string, startTime = 0): Promise<void> {
-    return new Promise((resolve) => {
-      this.ensureContainer();
-
+      // If YT API is already available and player is mounted, use loadVideoById
       if (this.player && typeof this.player.loadVideoById === 'function') {
         try {
           this.player.loadVideoById({
@@ -101,51 +60,85 @@ class YouTubePlayerService {
           resolve();
           return;
         } catch (e) {
-          console.warn('Could not load in existing player, rebuilding...', e);
+          console.warn('Re-creating YouTube player instance...');
         }
       }
 
-      try {
-        this.player = new window.YT.Player('lumina-yt-player', {
-          height: '200',
-          width: '200',
-          videoId,
-          playerVars: {
-            autoplay: 1,
-            controls: 0,
-            disablekb: 1,
-            fs: 0,
-            modestbranding: 1,
-            playsinline: 1,
-            rel: 0,
-            start: startTime,
-            enablejsapi: 1,
-          },
-          events: {
-            onReady: (event: any) => {
-              event.target.playVideo();
-              this.startPolling();
-              resolve();
+      // Clear container and create target element
+      container.innerHTML = '<div id="lumina-yt-player-target"></div>';
+
+      const setupPlayer = () => {
+        if (!window.YT || !window.YT.Player) return;
+
+        try {
+          this.player = new window.YT.Player('lumina-yt-player-target', {
+            height: '160',
+            width: '240',
+            videoId,
+            playerVars: {
+              autoplay: 1,
+              controls: 0,
+              disablekb: 1,
+              fs: 0,
+              modestbranding: 1,
+              playsinline: 1,
+              rel: 0,
+              start: startTime,
+              enablejsapi: 1,
+              origin: window.location.origin,
             },
-            onStateChange: (event: any) => {
-              this.handleStateChange(event.data);
+            events: {
+              onReady: (event: any) => {
+                event.target.playVideo();
+                this.startPolling();
+                resolve();
+              },
+              onStateChange: (event: any) => {
+                this.handleStateChange(event.data);
+              },
+              onError: (e: any) => {
+                console.error('YouTube Player runtime error:', e);
+                this.onErrorCallback?.(e);
+                resolve();
+              },
             },
-            onError: (e: any) => {
-              console.error('YouTube Player error:', e);
-              this.onErrorCallback?.(e);
-              resolve();
-            },
-          },
-        });
-      } catch (err) {
-        console.error('Error initializing YouTube Player:', err);
-        resolve();
+          });
+        } catch (err) {
+          console.error('Failed to construct YT.Player:', err);
+          resolve();
+        }
+      };
+
+      if (window.YT && window.YT.Player) {
+        setupPlayer();
+      } else {
+        const existingScript = document.getElementById('youtube-iframe-api-script');
+        if (!existingScript && !this.isApiScriptAppended) {
+          this.isApiScriptAppended = true;
+          const tag = document.createElement('script');
+          tag.id = 'youtube-iframe-api-script';
+          tag.src = 'https://www.youtube.com/iframe_api';
+          document.head.appendChild(tag);
+        }
+
+        const checkTimer = setInterval(() => {
+          if (window.YT && window.YT.Player) {
+            clearInterval(checkTimer);
+            setupPlayer();
+          }
+        }, 80);
+
+        // Fallback timeout after 4 seconds
+        setTimeout(() => {
+          clearInterval(checkTimer);
+          resolve();
+        }, 4000);
       }
     });
   }
 
   private handleStateChange(state: number): void {
-    // 0: Ended, 1: Playing, 2: Paused, 3: Buffering
+    // 0: Ended, 1: Playing, 2: Paused, 3: Buffering, 5: Video cued
     if (state === 1) {
       this.startPolling();
     } else if (state === 2 || state === 0) {
@@ -164,8 +157,8 @@ class YouTubePlayerService {
         try {
           const current = typeof this.player.getCurrentTime === 'function' ? this.player.getCurrentTime() : 0;
           const duration = typeof this.player.getDuration === 'function' ? this.player.getDuration() : 0;
-          if (duration > 0) {
-            this.onTimeUpdateCallback?.(current || 0, duration);
+          if (duration > 0 || current > 0) {
+            this.onTimeUpdateCallback?.(current || 0, duration || 0);
           }
         } catch {}
       }
@@ -191,13 +184,13 @@ class YouTubePlayerService {
 
   public async loadAndPlay(videoId: string, startTime = 0): Promise<void> {
     this.currentVideoId = videoId;
-    await this.loadIframeAPI();
-    await this.initPlayer(videoId, startTime);
+    await this.ensureIframe(videoId, startTime);
   }
 
   public play(): void {
     if (this.player && typeof this.player.playVideo === 'function') {
       this.player.playVideo();
+      this.startPolling();
     }
   }
 
@@ -215,7 +208,6 @@ class YouTubePlayerService {
   }
 
   public setVolume(volume: number): void {
-    // YouTube volume is 0 - 100
     if (this.player && typeof this.player.setVolume === 'function') {
       this.player.setVolume(Math.round(Math.max(0, Math.min(1, volume)) * 100));
     }
