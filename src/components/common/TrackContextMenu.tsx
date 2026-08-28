@@ -229,78 +229,102 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
             <span className="text-[10px] text-indigo-500/60 opacity-0 group-hover/btn:opacity-100 transition-opacity font-mono">Tags</span>
           </button>
 
-          <div className="h-px bg-border my-1" />
+          <div className="h-px bg-[#17232e] my-1" />
 
+          {/* Collection & Folder Actions Group */}
           <button
             onClick={handleToggleFavorite}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-rose-500/20 hover:text-rose-300 transition-colors text-left"
+            className="group/btn w-full flex items-center justify-between px-3 py-2 rounded-xl bg-transparent hover:bg-rose-500/15 hover:text-rose-300 transition-all text-left"
           >
-            <Heart
-              className={`w-3.5 h-3.5 ${
-                track.isFavorite ? 'text-rose-500 fill-rose-500' : 'text-rose-400'
-              }`}
-            />
-            <span>{track.isFavorite ? 'Remove Favorite' : 'Add to Favorites'}</span>
+            <div className="flex items-center gap-2.5">
+              <div className="p-1 rounded-lg bg-rose-500/10 group-hover/btn:bg-rose-500/20 group-hover/btn:scale-110 transition-all text-rose-400">
+                <Heart className={`w-3.5 h-3.5 ${track.isFavorite ? 'fill-rose-500 text-rose-500' : 'text-rose-400'}`} />
+              </div>
+              <span className="font-medium text-xs">
+                {track.isFavorite ? 'Remove Favorite' : 'Add to Favorites'}
+              </span>
+            </div>
+            {track.isFavorite && (
+              <span className="text-[10px] text-rose-400/70 font-mono">Saved</span>
+            )}
           </button>
 
-          {/* Add to Playlist Submenu */}
+          {/* Add to Playlist Expandable / Submenu */}
           <div className="relative">
             <button
-              onClick={() => setShowPlaylistsSub(!showPlaylistsSub)}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-white/5 transition-colors text-left"
+              onClick={() => {
+                setShowPlaylistsSub(!showPlaylistsSub);
+                setShowFoldersSub(false);
+              }}
+              className="group/btn w-full flex items-center justify-between px-3 py-2 rounded-xl bg-transparent hover:bg-purple-500/15 hover:text-purple-300 transition-all text-left"
             >
-              <span className="flex items-center gap-2.5">
-                <Disc className="w-3.5 h-3.5 text-purple-400" />
-                <span>Add to Playlist</span>
+              <div className="flex items-center gap-2.5">
+                <div className="p-1 rounded-lg bg-purple-500/10 group-hover/btn:bg-purple-500/20 group-hover/btn:scale-110 transition-all text-purple-400">
+                  <Disc className="w-3.5 h-3.5" />
+                </div>
+                <span className="font-medium text-xs">Add to Playlist</span>
+              </div>
+              <span className={`text-[10px] text-slate-500 transition-transform ${showPlaylistsSub ? 'rotate-90 text-purple-400' : ''}`}>
+                ▶
               </span>
-              <span className="text-[10px] text-muted-foreground">▶</span>
             </button>
 
             {showPlaylistsSub && (
-              <div className="absolute left-full top-0 ml-1 w-48 glass-dropdown rounded-2xl p-1 shadow-2xl border border-border max-h-48 overflow-y-auto">
+              <div className="mt-1 mb-1.5 ml-2 p-1 bg-[#06090d] rounded-xl border border-[#1a2636] space-y-0.5 max-h-36 overflow-y-auto custom-scrollbar animate-in slide-in-from-top-1 duration-150">
                 <button
                   onClick={handleCreateAndAddToPlaylist}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-primary hover:bg-primary/15 rounded-lg font-medium"
+                  className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-emerald-400 hover:bg-emerald-500/15 rounded-lg text-xs font-semibold"
                 >
-                  <Plus className="w-3 h-3" />
+                  <Plus className="w-3 h-3 stroke-[3]" />
                   <span>New Playlist...</span>
                 </button>
-                <div className="h-px bg-border my-1" />
-                {playlists.map((pl) => (
-                  <button
-                    key={pl.id}
-                    onClick={() => {
-                      if (track.id && pl.id) {
-                        addTracksToPlaylist(pl.id, [track.id]);
-                      }
-                      setMenuPosition(null);
-                    }}
-                    className="w-full text-left px-3 py-1.5 hover:bg-purple-500/20 hover:text-purple-300 rounded-lg truncate"
-                  >
-                    {pl.name}
-                  </button>
-                ))}
+                {playlists.length === 0 ? (
+                  <div className="px-2.5 py-1 text-slate-500 text-[11px]">No playlists yet</div>
+                ) : (
+                  playlists.map((pl) => (
+                    <button
+                      key={pl.id}
+                      onClick={() => {
+                        if (track.id && pl.id) {
+                          addTracksToPlaylist(pl.id, [track.id]);
+                        }
+                        setMenuPosition(null);
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 hover:bg-purple-500/20 hover:text-purple-300 rounded-lg text-xs truncate text-slate-300 flex items-center gap-1.5"
+                    >
+                      <Disc className="w-3 h-3 text-purple-400/70 shrink-0" />
+                      <span className="truncate">{pl.name}</span>
+                    </button>
+                  ))
+                )}
               </div>
             )}
           </div>
 
-          {/* Move to Folder Submenu */}
+          {/* Add to Folder Expandable / Submenu */}
           <div className="relative">
             <button
-              onClick={() => setShowFoldersSub(!showFoldersSub)}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-white/5 transition-colors text-left"
+              onClick={() => {
+                setShowFoldersSub(!showFoldersSub);
+                setShowPlaylistsSub(false);
+              }}
+              className="group/btn w-full flex items-center justify-between px-3 py-2 rounded-xl bg-transparent hover:bg-emerald-500/15 hover:text-emerald-300 transition-all text-left"
             >
-              <span className="flex items-center gap-2.5">
-                <FolderPlus className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Add to Section</span>
+              <div className="flex items-center gap-2.5">
+                <div className="p-1 rounded-lg bg-emerald-500/10 group-hover/btn:bg-emerald-500/20 group-hover/btn:scale-110 transition-all text-emerald-400">
+                  <FolderPlus className="w-3.5 h-3.5" />
+                </div>
+                <span className="font-medium text-xs">Add to Folder</span>
+              </div>
+              <span className={`text-[10px] text-slate-500 transition-transform ${showFoldersSub ? 'rotate-90 text-emerald-400' : ''}`}>
+                ▶
               </span>
-              <span className="text-[10px] text-muted-foreground">▶</span>
             </button>
 
             {showFoldersSub && (
-              <div className="absolute left-full top-0 ml-1 w-48 glass-dropdown rounded-2xl p-1 shadow-2xl border border-border max-h-48 overflow-y-auto">
+              <div className="mt-1 mb-1.5 ml-2 p-1 bg-[#06090d] rounded-xl border border-[#1a2636] space-y-0.5 max-h-36 overflow-y-auto custom-scrollbar animate-in slide-in-from-top-1 duration-150">
                 {folders.length === 0 ? (
-                  <div className="px-3 py-2 text-muted-foreground text-[11px]">No sections created</div>
+                  <div className="px-2.5 py-1.5 text-slate-500 text-[11px]">No folders created</div>
                 ) : (
                   folders.map((f) => (
                     <button
@@ -311,9 +335,9 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
                         }
                         setMenuPosition(null);
                       }}
-                      className="w-full text-left px-3 py-1.5 hover:bg-emerald-500/20 hover:text-emerald-300 rounded-lg truncate flex items-center gap-1.5"
+                      className="w-full text-left px-2.5 py-1.5 hover:bg-emerald-500/20 hover:text-emerald-300 rounded-lg text-xs truncate text-slate-300 flex items-center gap-1.5"
                     >
-                      <span>{f.icon || '📁'}</span>
+                      <span className="text-xs">{f.icon || '📁'}</span>
                       <span className="truncate">{f.name}</span>
                     </button>
                   ))
@@ -331,31 +355,43 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
                 }
                 setMenuPosition(null);
               }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-amber-500/20 text-amber-400/90 hover:text-amber-300 transition-colors text-left"
+              className="group/btn w-full flex items-center justify-between px-3 py-2 rounded-xl bg-transparent hover:bg-amber-500/15 hover:text-amber-300 transition-all text-left"
             >
-              <FolderMinus className="w-3.5 h-3.5 text-amber-400" />
-              <span>Ungroup from Folders</span>
+              <div className="flex items-center gap-2.5">
+                <div className="p-1 rounded-lg bg-amber-500/10 group-hover/btn:bg-amber-500/20 group-hover/btn:scale-110 transition-all text-amber-400">
+                  <FolderMinus className="w-3.5 h-3.5" />
+                </div>
+                <span className="font-medium text-xs">Ungroup from Folders</span>
+              </div>
+              <span className="text-[10px] text-amber-500/60 font-mono">Unlink</span>
             </button>
           )}
 
-          <div className="h-px bg-border my-1" />
+          <div className="h-px bg-[#17232e] my-1" />
 
+          {/* Export and Delete actions */}
           <button
             onClick={handleExportAudio}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/5 transition-colors text-left"
+            className="group/btn w-full flex items-center justify-between px-3 py-2 rounded-xl bg-transparent hover:bg-cyan-500/15 hover:text-cyan-300 transition-all text-left"
           >
-            <Download className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Export Audio File</span>
+            <div className="flex items-center gap-2.5">
+              <div className="p-1 rounded-lg bg-cyan-500/10 group-hover/btn:bg-cyan-500/20 group-hover/btn:scale-110 transition-all text-cyan-400">
+                <Download className="w-3.5 h-3.5" />
+              </div>
+              <span className="font-medium text-xs">Export Audio File</span>
+            </div>
           </button>
-
-          <div className="h-px bg-border my-1" />
 
           <button
             onClick={handleDelete}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-rose-500/20 text-rose-400 transition-colors text-left"
+            className="group/btn w-full flex items-center justify-between px-3 py-2 rounded-xl bg-transparent hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 transition-all text-left"
           >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>Delete Track</span>
+            <div className="flex items-center gap-2.5">
+              <div className="p-1 rounded-lg bg-rose-500/10 group-hover/btn:bg-rose-500/20 group-hover/btn:scale-110 transition-all text-rose-400">
+                <Trash2 className="w-3.5 h-3.5" />
+              </div>
+              <span className="font-semibold text-xs">Delete Track</span>
+            </div>
           </button>
         </div>
       )}
