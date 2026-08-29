@@ -7,7 +7,6 @@ import {
   Repeat,
   X,
   Layers,
-  Sparkles,
 } from 'lucide-react';
 import { useMultiDeckStore } from '../../stores/multiDeckStore';
 import { usePlayerStore } from '../../stores/playerStore';
@@ -21,7 +20,6 @@ export const MultiDeckTabBar: React.FC = () => {
     togglePlayDeck,
     toggleMuteDeck,
     toggleDeckLoop,
-    setDeckVolume,
     removeDeck,
     clearAllDecks,
     pauseAllDecks,
