@@ -129,8 +129,16 @@ export const DraggableTrackRowItem: React.FC<TrackRowItemProps> = ({
     }
     if (isSelectionActive && onSelect && track.id) {
       onSelect(track.id, e);
-    } else if (onSelect && track.id && (e.shiftKey || e.ctrlKey || e.metaKey)) {
+      return;
+    }
+    if (onSelect && track.id && (e.shiftKey || e.ctrlKey || e.metaKey)) {
       onSelect(track.id, e);
+      return;
+    }
+    if (isCurrent) {
+      togglePlay();
+    } else {
+      playTrack(track, allTracks);
     }
   };
 

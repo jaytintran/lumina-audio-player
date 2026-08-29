@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Upload, Sparkles, Star, Check, Heart, Plus } from 'lucide-react';
+import { X, Upload, Sparkles, Star, Check, Heart, Plus, Link as LinkIcon } from 'lucide-react';
 import type { Track } from '../../db/schema';
 import { db } from '../../db/db';
 import { saveFile, calculateSHA256 } from '../../db/opfs';
@@ -36,6 +36,8 @@ export const EditTrackMetadataModal: React.FC<EditTrackMetadataModalProps> = ({
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [isFavorite, setIsFavorite] = useState(track.isFavorite || false);
   const [coverKey, setCoverKey] = useState(track.coverKey);
+  const [imageUrlInput, setImageUrlInput] = useState('');
+  const [imageUrlError, setImageUrlError] = useState<string | null>(null);
   const [isProcessingCover, setIsProcessingCover] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -54,6 +56,8 @@ export const EditTrackMetadataModal: React.FC<EditTrackMetadataModalProps> = ({
     setDescription(track.description || '');
     setIsFavorite(track.isFavorite || false);
     setCoverKey(track.coverKey);
+    setImageUrlInput('');
+    setImageUrlError(null);
   }, [track]);
 
   // Handle Ctrl+Enter shortcut to save
@@ -84,6 +88,38 @@ export const EditTrackMetadataModal: React.FC<EditTrackMetadataModalProps> = ({
       } finally {
         setIsProcessingCover(false);
       }
+    }
+  };
+
+  const handleImportImageUrl = async () => {
+    const url = imageUrlInput.trim();
+    if (!url) return;
+
+    try {
+      setIsProcessingCover(true);
+      setImageUrlError(null);
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      if (!blob.type.startsWith('image/')) {
+        throw new Error('URL does not point to a valid image');
+      }
+
+      const hash = await calculateSHA256(blob);
+      const ext = blob.type.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg';
+      const newKey = `covers/${hash}.${ext}`;
+      await saveFile(newKey, blob);
+      setCoverKey(newKey);
+      setImageUrlInput('');
+    } catch (err: any) {
+      console.error('Failed to import cover from URL:', err);
+      setImageUrlError(err.message || 'Failed to download image. Note: CORS restrictions on some hosts may prevent direct loading.');
+    } finally {
+      setIsProcessingCover(false);
     }
   };
 
@@ -175,11 +211,12 @@ export const EditTrackMetadataModal: React.FC<EditTrackMetadataModalProps> = ({
           </div>
         </div>
 
-        {/* 2-Column Form Body matching screenshot */}
-        <form onSubmit={handleSave} className="flex-1 overflow-y-auto py-2 grid grid-cols-1 md:grid-cols-12 gap-6 pr-1">
-          {/* Left Column: Artwork + Upload / Generate buttons */}
-          <div className="md:col-span-4 flex flex-col items-center gap-2.5">
-            <div className="relative group w-full aspect-square max-w-[170px] rounded-xl overflow-hidden shadow-lg bg-[#0a0d12] flex items-center justify-center border border-[#1e2936]">
+        {/* Modal Form Body - 2 Stacked Sections */}
+        <form onSubmit={handleSave} className="flex-1 overflow-y-auto py-2 space-y-5 pr-1">
+          {/* Section 1: Cover Artwork & Artwork Actions */}
+          <div className="p-3.5 rounded-xl bg-[#121820]/60 border border-[#1e2936] flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            {/* Cover Preview */}
+            <div className="relative group w-28 h-28 shrink-0 rounded-xl overflow-hidden shadow-lg bg-[#0a0d12] flex items-center justify-center border border-[#223040]">
               <CoverArt coverKey={coverKey} title={title} size="full" />
             </div>
 
@@ -191,31 +228,79 @@ export const EditTrackMetadataModal: React.FC<EditTrackMetadataModalProps> = ({
               className="hidden"
             />
 
-            <div className="w-full max-w-[170px] flex flex-col gap-2 mt-1">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isProcessingCover}
-                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#141b24] border border-[#263546] text-slate-200 hover:bg-[#1a2330] hover:text-white text-xs font-medium transition-colors"
-              >
-                <Upload className="w-3.5 h-3.5" />
-                <span>Upload Cover</span>
-              </button>
+            {/* Artwork Controls */}
+            <div className="flex-1 w-full flex flex-col gap-2">
+              {/* Row 1: Direct URL Input Bar with Link icon and Import button */}
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[#0c1017] border border-[#223040] focus-within:border-emerald-500/70 focus-within:ring-1 focus-within:ring-emerald-500/20 transition-all">
+                  <div className="pl-2 pr-1 text-slate-500 flex items-center justify-center">
+                    <LinkIcon className="w-3.5 h-3.5" />
+                  </div>
+                  <input
+                    type="url"
+                    placeholder="Paste image link & press enter..."
+                    value={imageUrlInput}
+                    onChange={(e) => {
+                      setImageUrlInput(e.target.value);
+                      setImageUrlError(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleImportImageUrl();
+                      }
+                    }}
+                    disabled={isProcessingCover}
+                    className="flex-1 min-w-0 bg-transparent text-xs text-slate-100 placeholder-slate-500 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleImportImageUrl}
+                    disabled={isProcessingCover || !imageUrlInput.trim()}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-xs disabled:opacity-40 disabled:hover:bg-emerald-500 transition-colors flex items-center justify-center shrink-0 shadow-sm"
+                  >
+                    {isProcessingCover && imageUrlInput.trim() ? (
+                      <span className="flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 animate-spin" />
+                        <span>Loading...</span>
+                      </span>
+                    ) : (
+                      <span>Import</span>
+                    )}
+                  </button>
+                </div>
+                {imageUrlError && (
+                  <span className="text-[10px] text-rose-400 leading-tight px-1 break-words">{imageUrlError}</span>
+                )}
+              </div>
 
-              <button
-                type="button"
-                onClick={handleGenerateRandomCover}
-                disabled={isProcessingCover}
-                className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#10241b] border border-emerald-500/30 text-emerald-400 hover:text-emerald-300 hover:border-emerald-500/50 text-[11px] font-medium transition-all disabled:opacity-50"
-              >
-                <Sparkles className={`w-3.5 h-3.5 ${isProcessingCover ? 'animate-spin' : ''}`} />
-                <span>{isProcessingCover ? 'Generating...' : 'Abstract Cover'}</span>
-              </button>
+              {/* Row 2: Secondary Quick Actions Side-by-Side */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isProcessingCover}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#141b24] border border-[#263546] text-slate-200 hover:bg-[#1a2330] hover:text-white hover:border-slate-500/40 text-xs font-medium transition-all"
+                >
+                  <Upload className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Upload File</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleGenerateRandomCover}
+                  disabled={isProcessingCover}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#10241b] border border-emerald-500/30 text-emerald-400 hover:text-emerald-300 hover:border-emerald-500/50 hover:bg-emerald-950/40 text-xs font-medium transition-all disabled:opacity-50"
+                >
+                  <Sparkles className={`w-3.5 h-3.5 ${isProcessingCover && !imageUrlInput.trim() ? 'animate-spin' : ''}`} />
+                  <span>{isProcessingCover && !imageUrlInput.trim() ? 'Generating...' : 'Generate Abstract'}</span>
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Right Column: Title, Artist, Album, Year/Genre, Rating, Tags, Favorite */}
-          <div className="md:col-span-8 space-y-3.5">
+          {/* Section 2: Metadata Fields */}
+          <div className="space-y-3.5">
             {/* Title */}
             <div>
               <label className="block text-[11px] text-slate-400 mb-1">Title</label>

@@ -117,6 +117,23 @@ export const TrackDropdown: React.FC<TrackDropdownProps> = ({ track, onDeleted }
               <span className="text-[10px] text-emerald-500/60 opacity-0 group-hover/btn:opacity-100 transition-opacity font-mono">↵</span>
             </button>
 
+            {/* Edit Metadata in the second position */}
+            <button
+              onClick={() => {
+                setIsEditModalOpen(true);
+                setIsOpen(false);
+              }}
+              className="group/btn w-full flex items-center justify-between px-3 py-2 hover:bg-indigo-500/15 hover:text-indigo-300 rounded-xl transition-colors text-left"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="p-1 rounded-lg bg-indigo-500/10 group-hover/btn:bg-indigo-500/20 group-hover/btn:scale-110 transition-all text-indigo-400">
+                  <Edit2 className="w-3.5 h-3.5" />
+                </div>
+                <span className="font-medium text-xs">Edit Metadata</span>
+              </div>
+              <span className="text-[10px] text-indigo-500/60 opacity-0 group-hover/btn:opacity-100 transition-opacity font-mono">Tags</span>
+            </button>
+
             <button
               onClick={() => {
                 addDeck(track, true);
@@ -180,23 +197,6 @@ export const TrackDropdown: React.FC<TrackDropdownProps> = ({ track, onDeleted }
                 <span className="font-medium text-xs">View Details & Notes</span>
               </div>
               <span className="text-[10px] text-emerald-500/60 opacity-0 group-hover/btn:opacity-100 transition-opacity font-mono">Info</span>
-            </button>
-
-            {/* Edit Metadata in the primary group */}
-            <button
-              onClick={() => {
-                setIsEditModalOpen(true);
-                setIsOpen(false);
-              }}
-              className="group/btn w-full flex items-center justify-between px-3 py-2 hover:bg-indigo-500/15 hover:text-indigo-300 rounded-xl transition-colors text-left"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="p-1 rounded-lg bg-indigo-500/10 group-hover/btn:bg-indigo-500/20 group-hover/btn:scale-110 transition-all text-indigo-400">
-                  <Edit2 className="w-3.5 h-3.5" />
-                </div>
-                <span className="font-medium text-xs">Edit Metadata</span>
-              </div>
-              <span className="text-[10px] text-indigo-500/60 opacity-0 group-hover/btn:opacity-100 transition-opacity font-mono">Tags</span>
             </button>
 
             <div className="h-px bg-[#17232e] my-1" />
