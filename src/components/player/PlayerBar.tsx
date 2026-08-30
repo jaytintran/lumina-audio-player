@@ -12,7 +12,6 @@ import {
   Heart,
   ListMusic,
   Maximize2,
-  ChevronUp,
 } from 'lucide-react';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useSettings } from '../../hooks/useSettings';
@@ -58,21 +57,13 @@ export const PlayerBar: React.FC = () => {
   return (
     <>
       <div className="fixed bottom-0 left-0 md:left-64 right-0 z-40 bg-[#080b0f] border-t border-[#17232e] px-4 sm:px-6 pt-3.5 pb-2.5 shadow-2xl">
-        {/* Elevated Details / Notes Tab Handle on top border */}
-        <button
-          onClick={() => setIsDetailsOpen(true)}
-          className="absolute left-1/2 -translate-x-1/2 -top-4 z-50 h-4 px-3 rounded-t-lg bg-[#080b0f] border-t border-x border-[#17232e] hover:border-emerald-500/60 text-slate-500 hover:text-emerald-400 flex items-center justify-center shadow-md hover:h-5 hover:-top-5 transition-all group cursor-pointer"
-          title="Audio Details & Notes (Markdown)"
-        >
-          <ChevronUp className="w-3.5 h-3.5 group-hover:-translate-y-0.5 transition-transform" />
-        </button>
-
         <div className="w-full flex items-center justify-between gap-4">
         {/* Left: Track Information & Artwork */}
         <div className="flex items-center gap-3 min-w-0 w-1/4">
           <div
             onClick={() => setNowPlayingOpen(true)}
             className="cursor-pointer group relative shrink-0"
+            title="Expand Full Now Playing View"
           >
             <CoverArt coverKey={currentTrack.coverKey} title={currentTrack.title} size="md" />
             <div className="absolute inset-0 bg-black/40 rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
@@ -83,8 +74,9 @@ export const PlayerBar: React.FC = () => {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               <p
-                onClick={() => setNowPlayingOpen(true)}
+                onClick={() => setIsDetailsOpen(true)}
                 className="font-bold text-xs sm:text-sm text-slate-100 truncate hover:text-emerald-400 cursor-pointer transition-colors"
+                title="View Audio Details & Notes"
               >
                 {currentTrack.title}
               </p>
