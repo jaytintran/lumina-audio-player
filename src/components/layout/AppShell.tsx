@@ -41,9 +41,12 @@ import { db } from '../../db/db';
 import type { Track } from '../../db/schema';
 import { Heart, Clock, Flame, Music, Loader2 } from 'lucide-react';
 
+import { useMultiDeckStore } from '../../stores/multiDeckStore';
+
 export const AppShell: React.FC = () => {
   const { data: settings } = useSettings();
   const updateSettings = useUpdateSettings();
+  const { decks } = useMultiDeckStore();
 
   const [currentView, setCurrentView] = useState<string>('/');
   const [searchQuery, setSearchQuery] = useState('');
@@ -338,7 +341,7 @@ export const AppShell: React.FC = () => {
           </div>
 
           {/* View Container with Scroll */}
-          <main className="flex-1 overflow-y-auto px-6 pb-28 pt-2">
+          <main className={`flex-1 overflow-y-auto px-6 pt-2 transition-all duration-200 ${decks.length > 0 ? 'pb-44' : 'pb-28'}`}>
             {isImporting && (
               <div className="mb-4 p-3 rounded-2xl glass-panel border border-primary/40 flex items-center gap-3 animate-pulse text-xs text-primary">
                 <Loader2 className="w-4 h-4 animate-spin text-primary" />
