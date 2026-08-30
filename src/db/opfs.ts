@@ -45,7 +45,8 @@ export async function calculateSHA256(data: Blob | ArrayBuffer): Promise<string>
  */
 export async function saveFile(key: string, data: Blob | ArrayBuffer | Uint8Array): Promise<string> {
   try {
-    const parts = key.split('/');
+    const cleanKey = key.replace(/^\/+/, '');
+    const parts = cleanKey.split('/');
     const fileName = parts.pop()!;
     const dirHandle = await getDirectoryHandle(parts);
 
@@ -59,7 +60,7 @@ export async function saveFile(key: string, data: Blob | ArrayBuffer | Uint8Arra
         await writable.write(data);
       }
       await writable.close();
-      return key;
+      return cleanKey;
     }
   } catch (err) {
     console.error('Error saving to OPFS:', err);
@@ -74,7 +75,8 @@ export async function saveFile(key: string, data: Blob | ArrayBuffer | Uint8Arra
  */
 export async function readBlob(key: string, mimeType?: string): Promise<Blob | null> {
   try {
-    const parts = key.split('/');
+    const cleanKey = key.replace(/^\/+/, '');
+    const parts = cleanKey.split('/');
     const fileName = parts.pop()!;
     const dirHandle = await getDirectoryHandle(parts);
 
