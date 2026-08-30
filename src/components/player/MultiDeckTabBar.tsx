@@ -6,7 +6,6 @@ import {
   VolumeX,
   Repeat,
   X,
-  Layers,
 } from 'lucide-react';
 import { useMultiDeckStore } from '../../stores/multiDeckStore';
 import { usePlayerStore } from '../../stores/playerStore';
@@ -162,13 +161,6 @@ export const MultiDeckTabBar: React.FC = () => {
 
           {/* Right: Master Multi-Channel Controller Pill with Master Volume & Master Loop */}
           <div className="flex items-center gap-2 bg-[#0d141d] border border-[#1e2d3e] rounded-xl px-3 py-1.5 shrink-0 shadow-inner">
-            <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium">
-              <Layers className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{decks.length} Tabs</span>
-            </div>
-
-            <div className="w-[1px] h-3.5 bg-[#223347]" />
-
             {/* Master Play/Pause All */}
             <button
               onClick={hasAnyDeckPlaying ? pauseAllDecks : playAllDecks}
