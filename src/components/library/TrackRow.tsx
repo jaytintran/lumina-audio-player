@@ -26,7 +26,6 @@ interface TrackRowItemProps {
 export const DraggableTrackRowItem: React.FC<TrackRowItemProps> = ({
   track,
   index: _index,
-  allTracks,
   density = 'comfortable',
   isSelected = false,
   isSelectionActive = false,
@@ -71,7 +70,7 @@ export const DraggableTrackRowItem: React.FC<TrackRowItemProps> = ({
     if (isCurrent) {
       togglePlay();
     } else {
-      playTrack(track, allTracks);
+      playTrack(track, [track]);
     }
   };
 
@@ -138,7 +137,7 @@ export const DraggableTrackRowItem: React.FC<TrackRowItemProps> = ({
     if (isCurrent) {
       togglePlay();
     } else {
-      playTrack(track, allTracks);
+      playTrack(track, [track]);
     }
   };
 

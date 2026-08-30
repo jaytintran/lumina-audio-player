@@ -23,7 +23,6 @@ interface TrackCardProps {
 
 export const DraggableTrackCard: React.FC<TrackCardProps> = ({
   track,
-  allTracks,
   isSelected = false,
   isSelectionActive = false,
   selectedIds = new Set(),
@@ -68,7 +67,7 @@ export const DraggableTrackCard: React.FC<TrackCardProps> = ({
     if (isCurrent) {
       togglePlay();
     } else {
-      playTrack(track, allTracks);
+      playTrack(track, [track]);
     }
   };
 
@@ -118,7 +117,7 @@ export const DraggableTrackCard: React.FC<TrackCardProps> = ({
     if (isCurrent) {
       togglePlay();
     } else {
-      playTrack(track, allTracks);
+      playTrack(track, [track]);
     }
   };
 
