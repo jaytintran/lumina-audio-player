@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Upload, Sparkles, Star, Check, Heart, Plus, Link as LinkIcon } from 'lucide-react';
+import { X, Upload, Sparkles, Star, Check, Heart, Plus, Link as LinkIcon, ChevronDown, Palette } from 'lucide-react';
 import type { Track } from '../../db/schema';
 import { db } from '../../db/db';
 import { saveFile, calculateSHA256 } from '../../db/opfs';
 import { CoverArt } from '../common/CoverArt';
-import { generateRandomCoverBlob } from '../../utils/coverGenerator';
+import { generateArtCoverBlob, COVER_STYLE_OPTIONS, type CoverArtStyle } from '../../utils/coverGenerator';
 import { useDistinctMetadata } from '../../hooks/useTracks';
 import { AutoSuggestInput } from '../common/AutoSuggestInput';
 import { MarkdownRenderer } from '../common/MarkdownRenderer';
@@ -38,10 +38,12 @@ export const EditTrackMetadataModal: React.FC<EditTrackMetadataModalProps> = ({
   const [coverKey, setCoverKey] = useState(track.coverKey);
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [imageUrlError, setImageUrlError] = useState<string | null>(null);
+  const [showStyleMenu, setShowStyleMenu] = useState(false);
   const [isProcessingCover, setIsProcessingCover] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const styleMenuRef = useRef<HTMLDivElement>(null);
 
   // Sync state when incoming track changes
   useEffect(() => {
@@ -58,7 +60,21 @@ export const EditTrackMetadataModal: React.FC<EditTrackMetadataModalProps> = ({
     setCoverKey(track.coverKey);
     setImageUrlInput('');
     setImageUrlError(null);
+    setShowStyleMenu(false);
   }, [track]);
+
+  // Click outside to close style menu
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (styleMenuRef.current && !styleMenuRef.current.contains(e.target as Node)) {
+        setShowStyleMenu(false);
+      }
+    };
+    if (showStyleMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showStyleMenu]);
 
   // Handle Ctrl+Enter shortcut to save
   useEffect(() => {
@@ -123,16 +139,17 @@ export const EditTrackMetadataModal: React.FC<EditTrackMetadataModalProps> = ({
     }
   };
 
-  const handleGenerateRandomCover = async () => {
+  const handleGenerateStyleCover = async (style: CoverArtStyle) => {
     try {
       setIsProcessingCover(true);
-      const blob = await generateRandomCoverBlob(title.trim() || 'Audio Track', artist.trim() || 'Artist');
+      setShowStyleMenu(false);
+      const blob = await generateArtCoverBlob(style);
       const hash = await calculateSHA256(blob);
       const newKey = `covers/${hash}.jpg`;
       await saveFile(newKey, blob);
       setCoverKey(newKey);
     } catch (err) {
-      console.error('Failed to generate abstract cover:', err);
+      console.error('Failed to generate style cover:', err);
     } finally {
       setIsProcessingCover(false);
     }
@@ -286,15 +303,55 @@ export const EditTrackMetadataModal: React.FC<EditTrackMetadataModalProps> = ({
                   <span>Upload File</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={handleGenerateRandomCover}
-                  disabled={isProcessingCover}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#10241b] border border-emerald-500/30 text-emerald-400 hover:text-emerald-300 hover:border-emerald-500/50 hover:bg-emerald-950/40 text-xs font-medium transition-all disabled:opacity-50"
-                >
-                  <Sparkles className={`w-3.5 h-3.5 ${isProcessingCover && !imageUrlInput.trim() ? 'animate-spin' : ''}`} />
-                  <span>{isProcessingCover && !imageUrlInput.trim() ? 'Generating...' : 'Generate Abstract'}</span>
-                </button>
+                {/* Generate Style Cover with Dropdown / Popover */}
+                <div className="relative" ref={styleMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setShowStyleMenu((prev) => !prev)}
+                    disabled={isProcessingCover}
+                    className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg bg-[#10241b] border border-emerald-500/30 text-emerald-400 hover:text-emerald-300 hover:border-emerald-500/50 hover:bg-emerald-950/40 text-xs font-medium transition-all disabled:opacity-50"
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <Sparkles className={`w-3.5 h-3.5 shrink-0 ${isProcessingCover ? 'animate-spin' : ''}`} />
+                      <span className="truncate">{isProcessingCover ? 'Generating...' : 'Generate Art'}</span>
+                    </div>
+                    <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${showStyleMenu ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Style Selection Popover Menu */}
+                  {showStyleMenu && (
+                    <div className="absolute right-0 top-full mt-1.5 z-50 w-64 bg-[#090d13] rounded-xl p-1.5 shadow-2xl border border-[#1e2d3d] text-slate-200 animate-in fade-in zoom-in-95 duration-150">
+                      <div className="px-2 py-1 mb-1 border-b border-[#17232e] flex items-center justify-between text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                        <span className="flex items-center gap-1">
+                          <Palette className="w-3 h-3 text-emerald-400" />
+                          <span>Select Art Style</span>
+                        </span>
+                        <span className="text-[9px] text-slate-500">Text-Free</span>
+                      </div>
+
+                      <div className="space-y-0.5 max-h-56 overflow-y-auto custom-scrollbar pr-0.5">
+                        {COVER_STYLE_OPTIONS.map((opt) => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => handleGenerateStyleCover(opt.id)}
+                            className="w-full flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-emerald-950/40 text-left transition-colors group"
+                          >
+                            <span className="text-sm shrink-0 mt-0.5">{opt.emoji}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-slate-200 group-hover:text-emerald-300 transition-colors truncate">
+                                {opt.label}
+                              </p>
+                              <p className="text-[10px] text-slate-500 leading-tight truncate">
+                                {opt.description}
+                              </p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
