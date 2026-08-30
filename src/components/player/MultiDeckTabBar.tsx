@@ -10,12 +10,13 @@ import {
 } from 'lucide-react';
 import { useMultiDeckStore } from '../../stores/multiDeckStore';
 import { usePlayerStore } from '../../stores/playerStore';
-import { CoverArt } from '../common/CoverArt';
 
 export const MultiDeckTabBar: React.FC = () => {
   const {
     decks,
     activeDeckId,
+    masterVolume,
+    isMasterLooping,
     setActiveDeck,
     togglePlayDeck,
     toggleMuteDeck,
@@ -24,6 +25,8 @@ export const MultiDeckTabBar: React.FC = () => {
     clearAllDecks,
     pauseAllDecks,
     playAllDecks,
+    setMasterVolume,
+    toggleMasterLoop,
     swapWithMainTrack,
   } = useMultiDeckStore();
 
@@ -42,11 +45,11 @@ export const MultiDeckTabBar: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-[86px] left-0 right-0 z-40 pointer-events-none animate-in slide-in-from-bottom-3 duration-200">
-      <div className="max-w-7xl mx-auto px-4 pointer-events-auto">
+    <div className="fixed bottom-[86px] left-0 md:left-64 right-0 z-40 pointer-events-none animate-in slide-in-from-bottom-3 duration-200">
+      <div className="w-full px-4 sm:px-6 pointer-events-auto">
         <div className="flex items-center justify-between gap-3 p-1.5 rounded-2xl bg-[#090e15]/95 backdrop-blur-md border border-[#1b2a3a] shadow-2xl">
-          {/* Left: Horizontal Scrollable Tabs Strip */}
-          <div className="flex-1 flex items-center gap-2 overflow-x-auto custom-scrollbar py-0.5 px-1 flex-nowrap">
+          {/* Left: Horizontal Scrollable Tabs Strip (Cover art hidden) */}
+          <div className="flex-1 flex items-center gap-2 overflow-x-auto custom-scrollbar py-0.5 px-1 flex-nowrap min-w-0">
             {decks.map((deck) => {
               const isActive = activeDeckId === deck.id;
               return (
@@ -54,24 +57,26 @@ export const MultiDeckTabBar: React.FC = () => {
                   key={deck.id}
                   onClick={() => handleTabClick(deck.id)}
                   title="Click to view & control in main player"
-                  className={`group relative flex items-center gap-2.5 pl-2.5 pr-2 py-1.5 rounded-xl border transition-all cursor-pointer select-none shrink-0 ${
+                  className={`group relative flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-xl border transition-all cursor-pointer select-none shrink-0 ${
                     isActive
                       ? 'bg-[#10221c] border-emerald-500/60 text-slate-100 shadow-md ring-1 ring-emerald-500/30'
                       : 'bg-[#0c1219] hover:bg-[#121b25] border-[#1a2735] hover:border-[#2b3e52] text-slate-300'
                   }`}
                 >
-                  {/* Mini Cover with playing pulse */}
-                  <div className="w-6 h-6 rounded-lg overflow-hidden shrink-0 border border-[#1e2c3a] relative">
-                    <CoverArt coverKey={deck.track.coverKey} title={deck.track.title} size="sm" />
-                    {deck.isPlaying && (
-                      <div className="absolute inset-0 bg-emerald-500/25 flex items-center justify-center">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                      </div>
+                  {/* Playing Live Dot indicator */}
+                  <span className="relative flex h-2 w-2 shrink-0">
+                    {deck.isPlaying ? (
+                      <>
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+                      </>
+                    ) : (
+                      <span className="inline-flex rounded-full h-2 w-2 bg-slate-600" />
                     )}
-                  </div>
+                  </span>
 
                   {/* Title & Artist */}
-                  <div className="flex flex-col min-w-0 max-w-[120px] sm:max-w-[160px]">
+                  <div className="flex flex-col min-w-0 max-w-[130px] sm:max-w-[180px]">
                     <span
                       className={`text-xs font-semibold truncate leading-tight transition-colors ${
                         isActive ? 'text-emerald-400' : 'group-hover:text-emerald-300 text-slate-200'
@@ -85,7 +90,7 @@ export const MultiDeckTabBar: React.FC = () => {
                   </div>
 
                   {/* Tab Action Controls */}
-                  <div className="flex items-center gap-0.5 ml-1">
+                  <div className="flex items-center gap-0.5 ml-1.5">
                     {/* Play / Pause Toggle */}
                     <button
                       onClick={(e) => {
@@ -155,33 +160,65 @@ export const MultiDeckTabBar: React.FC = () => {
             })}
           </div>
 
-          {/* Right: Master Multi-Channel Controller Pill */}
+          {/* Right: Master Multi-Channel Controller Pill with Master Volume & Master Loop */}
           <div className="flex items-center gap-2 bg-[#0d141d] border border-[#1e2d3e] rounded-xl px-3 py-1.5 shrink-0 shadow-inner">
             <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium">
               <Layers className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{decks.length} Tabs Open</span>
+              <span>{decks.length} Tabs</span>
             </div>
 
             <div className="w-[1px] h-3.5 bg-[#223347]" />
 
+            {/* Master Play/Pause All */}
             <button
               onClick={hasAnyDeckPlaying ? pauseAllDecks : playAllDecks}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-slate-200 hover:text-emerald-300 hover:bg-[#14202d] text-xs font-medium transition-all"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-slate-200 hover:text-emerald-300 hover:bg-[#14202d] text-xs font-medium transition-all"
               title={hasAnyDeckPlaying ? 'Pause all playing tabs' : 'Play all tabs'}
             >
               {hasAnyDeckPlaying ? (
                 <>
                   <Pause className="w-3 h-3 fill-current text-emerald-400" />
-                  <span>Pause All</span>
+                  <span className="hidden sm:inline">Pause All</span>
                 </>
               ) : (
                 <>
                   <Play className="w-3 h-3 fill-current text-emerald-400" />
-                  <span>Play All</span>
+                  <span className="hidden sm:inline">Play All</span>
                 </>
               )}
             </button>
 
+            {/* Master Loop All Toggle */}
+            <button
+              onClick={toggleMasterLoop}
+              className={`p-1.5 rounded-lg transition-colors ${
+                isMasterLooping
+                  ? 'text-emerald-400 bg-emerald-950/60 border border-emerald-500/40'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-[#14202d]'
+              }`}
+              title={isMasterLooping ? 'Master Loop enabled for all tabs' : 'Loop all tabs'}
+            >
+              <Repeat className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Master Volume Slider */}
+            <div className="flex items-center gap-1.5 pl-1">
+              <Volume2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.02"
+                value={masterVolume}
+                onChange={(e) => setMasterVolume(parseFloat(e.target.value))}
+                className="w-16 sm:w-20 accent-emerald-500 h-1 bg-[#1a2938] rounded-lg cursor-pointer"
+                title={`Master Volume: ${Math.round(masterVolume * 100)}%`}
+              />
+            </div>
+
+            <div className="w-[1px] h-3.5 bg-[#223347]" />
+
+            {/* Close All */}
             <button
               onClick={clearAllDecks}
               className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/30 transition-colors"

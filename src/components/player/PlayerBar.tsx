@@ -57,7 +57,7 @@ export const PlayerBar: React.FC = () => {
 
   return (
     <>
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#080b0f] border-t border-[#17232e] px-4 pt-3.5 pb-2.5 shadow-2xl">
+      <div className="fixed bottom-0 left-0 md:left-64 right-0 z-40 bg-[#080b0f] border-t border-[#17232e] px-4 sm:px-6 pt-3.5 pb-2.5 shadow-2xl">
         {/* Elevated Details / Notes Tab Handle on top border */}
         <button
           onClick={() => setIsDetailsOpen(true)}
@@ -67,7 +67,7 @@ export const PlayerBar: React.FC = () => {
           <ChevronUp className="w-3.5 h-3.5 group-hover:-translate-y-0.5 transition-transform" />
         </button>
 
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+        <div className="w-full flex items-center justify-between gap-4">
         {/* Left: Track Information & Artwork */}
         <div className="flex items-center gap-3 min-w-0 w-1/4">
           <div

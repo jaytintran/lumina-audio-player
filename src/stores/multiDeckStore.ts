@@ -19,6 +19,8 @@ interface MultiDeckState {
   decks: MultiDeckChannel[];
   activeDeckId: string | null;
   audioContext: AudioContext | null;
+  masterVolume: number;
+  isMasterLooping: boolean;
 
   // Actions
   addDeck: (track: Track, autoPlay?: boolean) => Promise<string>;
@@ -29,6 +31,8 @@ interface MultiDeckState {
   setDeckTime: (deckId: string, time: number) => void;
   toggleDeckLoop: (deckId: string) => void;
   setActiveDeck: (deckId: string) => void;
+  setMasterVolume: (volume: number) => void;
+  toggleMasterLoop: () => void;
   pauseAllDecks: () => void;
   playAllDecks: () => void;
   clearAllDecks: () => void;
@@ -39,6 +43,8 @@ export const useMultiDeckStore = create<MultiDeckState>((set, get) => ({
   decks: [],
   activeDeckId: null,
   audioContext: null,
+  masterVolume: 0.8,
+  isMasterLooping: false,
 
   addDeck: async (track: Track, autoPlay = true) => {
     let ctx = get().audioContext;
@@ -234,6 +240,27 @@ export const useMultiDeckStore = create<MultiDeckState>((set, get) => ({
 
   setActiveDeck: (deckId: string) => {
     set({ activeDeckId: deckId });
+  },
+
+  setMasterVolume: (volume: number) => {
+    const clamped = Math.max(0, Math.min(1, volume));
+    set({ masterVolume: clamped });
+    get().decks.forEach((deck) => {
+      if (!deck.isMuted) {
+        deck.gainNode.gain.value = clamped * deck.volume;
+      }
+    });
+  },
+
+  toggleMasterLoop: () => {
+    const nextLoop = !get().isMasterLooping;
+    set({ isMasterLooping: nextLoop });
+    get().decks.forEach((deck) => {
+      deck.audio.loop = nextLoop;
+    });
+    set((state) => ({
+      decks: state.decks.map((d) => ({ ...d, isLooping: nextLoop })),
+    }));
   },
 
   pauseAllDecks: () => {
