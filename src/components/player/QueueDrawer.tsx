@@ -41,7 +41,6 @@ interface SortableQueueItemProps {
   index: number;
   isActive?: boolean;
   isPast?: boolean;
-  prefix?: string;
   onPlay: () => void;
   onRemove: () => void;
 }
@@ -51,12 +50,11 @@ const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
   index,
   isActive = false,
   isPast = false,
-  prefix = 'queue',
   onPlay,
   onRemove,
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: `${prefix}-${index}-${track.id || index}`,
+    id: `queue-${index}-${track.id || index}`,
   });
 
   const style = {
@@ -128,7 +126,7 @@ const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
             onRemove();
           }}
           className="p-1 rounded-md text-slate-500 hover:text-rose-400 hover:bg-rose-500/20 transition-colors"
-          title="Remove from list"
+          title="Remove from queue"
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>
@@ -141,7 +139,6 @@ export const QueueDrawer: React.FC = () => {
   const {
     queue,
     currentIndex,
-    userQueue,
     currentTrack,
     history,
     isPlaying,
@@ -150,15 +147,11 @@ export const QueueDrawer: React.FC = () => {
     isQueueOpen,
     setQueueOpen,
     removeFromQueue,
-    removeFromUserQueue,
     reorderQueue,
-    reorderUserQueue,
     clearQueue,
-    clearUserQueue,
     clearHistory,
     shuffleQueue,
     playQueueIndex,
-    playUserQueueIndex,
     playTrack,
     togglePlay,
   } = usePlayerStore();
@@ -188,18 +181,10 @@ export const QueueDrawer: React.FC = () => {
       const activeId = String(active.id);
       const overId = String(over.id);
 
-      if (activeId.startsWith('user-') && overId.startsWith('user-')) {
-        const oldIndex = userQueue.findIndex((t, idx) => `user-${idx}-${t.id || idx}` === activeId);
-        const newIndex = userQueue.findIndex((t, idx) => `user-${idx}-${t.id || idx}` === overId);
-        if (oldIndex !== -1 && newIndex !== -1) {
-          reorderUserQueue(oldIndex, newIndex);
-        }
-      } else if (activeId.startsWith('main-') && overId.startsWith('main-')) {
-        const oldIndex = queue.findIndex((t, idx) => `main-${idx}-${t.id || idx}` === activeId);
-        const newIndex = queue.findIndex((t, idx) => `main-${idx}-${t.id || idx}` === overId);
-        if (oldIndex !== -1 && newIndex !== -1) {
-          reorderQueue(oldIndex, newIndex);
-        }
+      const oldIndex = queue.findIndex((t, idx) => `queue-${idx}-${t.id || idx}` === activeId);
+      const newIndex = queue.findIndex((t, idx) => `queue-${idx}-${t.id || idx}` === overId);
+      if (oldIndex !== -1 && newIndex !== -1) {
+        reorderQueue(oldIndex, newIndex);
       }
     }
   };
@@ -207,8 +192,7 @@ export const QueueDrawer: React.FC = () => {
   const handleSaveAsPlaylist = async (e: React.FormEvent) => {
     e.preventDefault();
     const name = playlistName.trim() || `Queue - ${new Date().toLocaleDateString()}`;
-    const allTracks = [...userQueue, ...queue];
-    const trackIds = allTracks.map((t) => t.id).filter((id): id is number => typeof id === 'number');
+    const trackIds = queue.map((t) => t.id).filter((id): id is number => typeof id === 'number');
 
     if (trackIds.length > 0) {
       const newPlaylistId = await createPlaylist(name);
@@ -223,8 +207,8 @@ export const QueueDrawer: React.FC = () => {
   };
 
   // Calculate total playlist duration and total track count
-  const totalQueueSeconds = queue.reduce((acc, t) => acc + (t.duration || 0), 0) + userQueue.reduce((acc, t) => acc + (t.duration || 0), 0);
-  const totalQueueCount = queue.length + userQueue.length;
+  const totalQueueSeconds = queue.reduce((acc, t) => acc + (t.duration || 0), 0);
+  const totalQueueCount = queue.length;
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
@@ -254,7 +238,7 @@ export const QueueDrawer: React.FC = () => {
               <button
                 onClick={() => setIsSavingPlaylist(!isSavingPlaylist)}
                 className="flex items-center gap-1 text-xs text-slate-300 hover:text-emerald-300 px-2 py-1 rounded-lg bg-[#101822] border border-[#1e2d3e] hover:border-emerald-500/40 transition-colors"
-                title="Save tracklist as playlist"
+                title="Save queue as playlist"
               >
                 <Disc className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="text-[11px] font-medium">Save</span>
@@ -271,12 +255,9 @@ export const QueueDrawer: React.FC = () => {
               </button>
             )}
 
-            {activeTab === 'queue' && (queue.length > 0 || userQueue.length > 0) && (
+            {activeTab === 'queue' && queue.length > 0 && (
               <button
-                onClick={() => {
-                  clearQueue();
-                  clearUserQueue();
-                }}
+                onClick={clearQueue}
                 className="text-[11px] text-slate-400 hover:text-rose-400 px-2 py-1 rounded-lg hover:bg-rose-500/10 transition-colors"
               >
                 Clear
@@ -301,7 +282,7 @@ export const QueueDrawer: React.FC = () => {
           </div>
         </div>
 
-        {/* Tab Switcher: Up Next vs History */}
+        {/* Tab Switcher: Queue vs History */}
         <div className="flex items-center gap-1 p-1 my-3 bg-[#0d131a] rounded-xl border border-[#17232e]">
           <button
             onClick={() => setActiveTab('queue')}
@@ -312,7 +293,7 @@ export const QueueDrawer: React.FC = () => {
             }`}
           >
             <ListMusic className="w-3.5 h-3.5" />
-            <span>Tracklist</span>
+            <span>Queue</span>
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#121c27] text-slate-300 font-mono">
               {totalQueueCount}
             </span>
@@ -340,7 +321,7 @@ export const QueueDrawer: React.FC = () => {
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
                 <Disc className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Name this Playlist</span>
+                <span>Save Queue as Playlist</span>
               </span>
               <span className="text-[10px] text-slate-400 font-mono">({totalQueueCount} tracks)</span>
             </div>
@@ -350,7 +331,7 @@ export const QueueDrawer: React.FC = () => {
                 autoFocus
                 value={playlistName}
                 onChange={(e) => setPlaylistName(e.target.value)}
-                placeholder={`e.g. Session ${new Date().toLocaleDateString()}`}
+                placeholder={`e.g. Playlist - ${new Date().toLocaleDateString()}`}
                 className="flex-1 px-2.5 py-1.5 rounded-xl bg-[#070b0f] border border-[#1e2d3e] text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
               />
               <button
@@ -367,7 +348,7 @@ export const QueueDrawer: React.FC = () => {
         {saveSuccess && (
           <div className="mb-3 p-2 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-1.5 animate-in fade-in">
             <Check className="w-3.5 h-3.5 text-emerald-400 stroke-[3]" />
-            <span>Queue saved as new playlist!</span>
+            <span>Queue saved to Playlists!</span>
           </div>
         )}
 
@@ -417,7 +398,7 @@ export const QueueDrawer: React.FC = () => {
           </div>
         )}
 
-        {/* Tab 1: Tracklist (User-Added Priority + Full Context Queue) */}
+        {/* Tab 1: Unified Queue */}
         {activeTab === 'queue' && (
           <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
             {totalQueueCount === 0 ? (
@@ -425,66 +406,36 @@ export const QueueDrawer: React.FC = () => {
                 <Music className="w-10 h-10 mb-2 opacity-25 text-emerald-400" />
                 <p className="text-xs font-semibold text-slate-300">Queue is empty</p>
                 <p className="text-[11px] text-slate-600 mt-1 max-w-[220px]">
-                  Play any song, album, or folder to load the full tracklist
+                  Play any song, or use "Play Next" and "Add to Queue"
                 </p>
               </div>
             ) : (
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleQueueDragEnd}>
-                {/* 1. Priority User-Queued Tracks (Play Next) */}
-                {userQueue.length > 0 && (
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between px-1 text-[10px] font-bold uppercase tracking-wider text-cyan-400">
-                      <span>Next In Queue (User Added)</span>
-                      <span className="font-mono text-[9px] text-cyan-500/80">{userQueue.length} priority</span>
-                    </div>
-
-                    <SortableContext
-                      items={userQueue.map((t, idx) => `user-${idx}-${t.id || idx}`)}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      {userQueue.map((track, idx) => (
-                        <SortableQueueItem
-                          key={`user-${idx}-${track.id || idx}`}
-                          track={track}
-                          index={idx}
-                          prefix="user"
-                          onPlay={() => playUserQueueIndex(idx)}
-                          onRemove={() => removeFromUserQueue(idx)}
-                        />
-                      ))}
-                    </SortableContext>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <span>Upcoming Tracks</span>
+                    <span className="font-mono text-[9px] text-slate-500">
+                      {currentIndex >= 0 ? `${currentIndex + 1} of ${queue.length}` : `${queue.length} tracks`}
+                    </span>
                   </div>
-                )}
 
-                {/* 2. Persistent Context Queue (Full Album / Folder / Playlist) */}
-                {queue.length > 0 && (
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                      <span>Playing From Context</span>
-                      <span className="font-mono text-[9px] text-slate-600">
-                        {currentIndex >= 0 ? `${currentIndex + 1} of ${queue.length}` : `${queue.length} tracks`}
-                      </span>
-                    </div>
-
-                    <SortableContext
-                      items={queue.map((t, idx) => `main-${idx}-${t.id || idx}`)}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      {queue.map((track, idx) => (
-                        <SortableQueueItem
-                          key={`main-${idx}-${track.id || idx}`}
-                          track={track}
-                          index={idx}
-                          prefix="main"
-                          isActive={idx === currentIndex}
-                          isPast={currentIndex >= 0 && idx < currentIndex}
-                          onPlay={() => playQueueIndex(idx)}
-                          onRemove={() => removeFromQueue(idx)}
-                        />
-                      ))}
-                    </SortableContext>
-                  </div>
-                )}
+                  <SortableContext
+                    items={queue.map((t, idx) => `queue-${idx}-${t.id || idx}`)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {queue.map((track, idx) => (
+                      <SortableQueueItem
+                        key={`queue-${idx}-${track.id || idx}`}
+                        track={track}
+                        index={idx}
+                        isActive={idx === currentIndex}
+                        isPast={currentIndex >= 0 && idx < currentIndex}
+                        onPlay={() => playQueueIndex(idx)}
+                        onRemove={() => removeFromQueue(idx)}
+                      />
+                    ))}
+                  </SortableContext>
+                </div>
               </DndContext>
             )}
           </div>

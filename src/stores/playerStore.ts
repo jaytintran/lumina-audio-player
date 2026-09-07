@@ -8,10 +8,8 @@ export type VisualizerMode = 'bars' | 'wave' | 'circle';
 
 interface PlayerState {
   currentTrack: Track | null;
-  queue: Track[];               // The full persistent tracklist (e.g. folder, album, playlist)
-  currentIndex: number;         // Active index within the full queue (-1 if empty)
-  userQueue: Track[];           // Priority "Play Next" items added by user
-  originalQueue: Track[];       // Unshuffled copy
+  queue: Track[];               // The single unified queue
+  currentIndex: number;         // Active index within the queue (-1 if empty)
   history: Track[];
   isPlaying: boolean;
   currentTime: number;
@@ -39,15 +37,11 @@ interface PlayerState {
   addToQueue: (tracks: Track | Track[]) => void;
   playNext: (tracks: Track | Track[]) => void;
   playQueueIndex: (index: number) => Promise<void>;
-  playUserQueueIndex: (index: number) => Promise<void>;
   shuffleQueue: () => void;
   clearHistory: () => void;
   removeFromQueue: (index: number) => void;
-  removeFromUserQueue: (index: number) => void;
   reorderQueue: (fromIndex: number, toIndex: number) => void;
-  reorderUserQueue: (fromIndex: number, toIndex: number) => void;
   clearQueue: () => void;
-  clearUserQueue: () => void;
   setNowPlayingOpen: (open: boolean) => void;
   setQueueOpen: (open: boolean) => void;
   setVisualizerMode: (mode: VisualizerMode) => void;
@@ -91,8 +85,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     currentTrack: null,
     queue: [],
     currentIndex: -1,
-    userQueue: [],
-    originalQueue: [],
     history: [],
     isPlaying: false,
     currentTime: 0,
@@ -107,30 +99,30 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     visualizerMode: 'bars',
 
     playTrack: async (track: Track, newQueue?: Track[]) => {
-      const { currentTrack, history, queue: currentQueue } = get();
-      const updatedHistory = currentTrack ? [currentTrack, ...history.filter(h => h.id !== currentTrack.id).slice(0, 50)] : history;
+      const { currentTrack, history } = get();
+      const updatedHistory = currentTrack
+        ? [currentTrack, ...history.filter((h) => h.id !== currentTrack.id).slice(0, 50)]
+        : history;
 
-      let fullQueue = newQueue ? [...newQueue] : currentQueue;
-      let targetIndex = -1;
+      let fullQueue: Track[];
+      let targetIndex: number;
 
-      if (newQueue) {
-        targetIndex = newQueue.findIndex(t => t.id === track.id);
+      if (newQueue && newQueue.length > 0) {
+        fullQueue = [...newQueue];
+        targetIndex = newQueue.findIndex((t) => t.id === track.id);
         if (targetIndex === -1) {
           fullQueue = [track, ...newQueue];
           targetIndex = 0;
         }
       } else {
-        targetIndex = fullQueue.findIndex(t => t.id === track.id);
-        if (targetIndex === -1) {
-          fullQueue = [...fullQueue, track];
-          targetIndex = fullQueue.length - 1;
-        }
+        // Standalone track playback -> clear queue to just this track
+        fullQueue = [track];
+        targetIndex = 0;
       }
 
       set({
         currentTrack: track,
         queue: fullQueue,
-        originalQueue: newQueue ? [...newQueue] : get().originalQueue,
         currentIndex: targetIndex,
         history: updatedHistory,
         isPlaying: true,
@@ -160,7 +152,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       if (!currentTrack) {
         if (queue.length > 0) {
           const idx = currentIndex >= 0 ? currentIndex : 0;
-          await get().playTrack(queue[idx]);
+          await get().playQueueIndex(idx);
         }
         return;
       }
@@ -175,32 +167,18 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     },
 
     nextTrack: async () => {
-      const { userQueue, queue, currentIndex, repeatMode } = get();
+      const { queue, currentIndex, repeatMode } = get();
 
-      // 1. First priority: check user-queued ("Play Next" / "Add to Queue") items
-      if (userQueue.length > 0) {
-        const nextUserTrack = userQueue[0];
-        const remainingUserQueue = userQueue.slice(1);
-        set({ userQueue: remainingUserQueue });
-        await get().playTrack(nextUserTrack);
+      if (queue.length === 0) {
+        set({ isPlaying: false, currentTime: 0 });
         return;
       }
 
-      // 2. Next item in persistent queue
-      if (queue.length > 0) {
-        const nextIdx = currentIndex + 1;
-        if (nextIdx < queue.length) {
-          const nextTrack = queue[nextIdx];
-          set({ currentIndex: nextIdx });
-          await get().playTrack(nextTrack);
-        } else if (repeatMode === 'all') {
-          // Wrap around seamlessly to start of full queue
-          const firstTrack = queue[0];
-          set({ currentIndex: 0 });
-          await get().playTrack(firstTrack);
-        } else {
-          set({ isPlaying: false, currentTime: 0 });
-        }
+      const nextIdx = currentIndex + 1;
+      if (nextIdx < queue.length) {
+        await get().playQueueIndex(nextIdx);
+      } else if (repeatMode === 'all') {
+        await get().playQueueIndex(0);
       } else {
         set({ isPlaying: false, currentTime: 0 });
       }
@@ -216,9 +194,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
 
       const prevIdx = currentIndex - 1;
       if (prevIdx >= 0 && prevIdx < queue.length) {
-        const prevTrack = queue[prevIdx];
-        set({ currentIndex: prevIdx });
-        await get().playTrack(prevTrack);
+        await get().playQueueIndex(prevIdx);
       } else {
         get().seek(0);
       }
@@ -252,23 +228,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     },
 
     toggleShuffle: () => {
-      const { isShuffle, queue, currentIndex, currentTrack } = get();
+      const { isShuffle } = get();
       if (!isShuffle) {
-        if (queue.length <= 1) return;
-        // Keep current track at index 0, shuffle the rest
-        const otherTracks = queue.filter((_, i) => i !== currentIndex);
-        const shuffled = [...otherTracks].sort(() => Math.random() - 0.5);
-        const newQueue = currentTrack ? [currentTrack, ...shuffled] : shuffled;
-        set({ isShuffle: true, queue: newQueue, currentIndex: currentTrack ? 0 : -1 });
+        get().shuffleQueue();
+        set({ isShuffle: true });
       } else {
-        // Restore order from originalQueue
-        const original = get().originalQueue;
-        if (original.length > 0) {
-          const newIdx = currentTrack ? original.findIndex(t => t.id === currentTrack.id) : 0;
-          set({ isShuffle: false, queue: [...original], currentIndex: newIdx !== -1 ? newIdx : 0 });
-        } else {
-          set({ isShuffle: false });
-        }
+        set({ isShuffle: false });
       }
     },
 
@@ -280,43 +245,85 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
 
     addToQueue: (tracks: Track | Track[]) => {
       const trackArr = Array.isArray(tracks) ? tracks : [tracks];
-      set(state => ({
-        userQueue: [...state.userQueue, ...trackArr],
+      if (trackArr.length === 0) return;
+
+      const { queue, currentTrack } = get();
+      if (queue.length === 0 || !currentTrack) {
+        get().playTrack(trackArr[0], trackArr);
+        return;
+      }
+
+      set((state) => ({
+        queue: [...state.queue, ...trackArr],
       }));
     },
 
     playNext: (tracks: Track | Track[]) => {
       const trackArr = Array.isArray(tracks) ? tracks : [tracks];
-      set(state => ({
-        userQueue: [...trackArr, ...state.userQueue],
-      }));
+      if (trackArr.length === 0) return;
+
+      const { queue, currentIndex, currentTrack } = get();
+      if (queue.length === 0 || !currentTrack || currentIndex === -1) {
+        get().playTrack(trackArr[0], trackArr);
+        return;
+      }
+
+      set((state) => {
+        const insertIdx = state.currentIndex + 1;
+        const newQueue = [...state.queue];
+        newQueue.splice(insertIdx, 0, ...trackArr);
+        return { queue: newQueue };
+      });
     },
 
     playQueueIndex: async (index: number) => {
-      const { queue } = get();
+      const { queue, currentTrack, history } = get();
       if (index < 0 || index >= queue.length) return;
       const trackToPlay = queue[index];
-      set({ currentIndex: index });
-      await get().playTrack(trackToPlay);
-    },
 
-    playUserQueueIndex: async (index: number) => {
-      const { userQueue } = get();
-      if (index < 0 || index >= userQueue.length) return;
-      const trackToPlay = userQueue[index];
-      const remaining = userQueue.filter((_, i) => i !== index);
-      set({ userQueue: remaining });
-      await get().playTrack(trackToPlay);
+      const updatedHistory = currentTrack
+        ? [currentTrack, ...history.filter((h) => h.id !== currentTrack.id).slice(0, 50)]
+        : history;
+
+      set({
+        currentIndex: index,
+        currentTrack: trackToPlay,
+        history: updatedHistory,
+        isPlaying: true,
+        currentTime: 0,
+        duration: trackToPlay.duration || 0,
+      });
+
+      if (trackToPlay.id) {
+        const playCount = (trackToPlay.playCount || 0) + 1;
+        db.tracks.update(trackToPlay.id, {
+          playCount,
+          lastPlayed: Date.now(),
+        }).catch(() => {});
+      }
+
+      try {
+        await audioEngine.loadAndPlay(trackToPlay);
+      } catch (err) {
+        console.error('Failed to play track index:', err);
+        set({ isPlaying: false });
+      }
     },
 
     shuffleQueue: () => {
-      const { queue, currentIndex, currentTrack } = get();
+      const { queue, currentIndex } = get();
       if (queue.length <= 1) return;
-      // Shuffle tracks except the currently playing one
-      const otherTracks = queue.filter((_, i) => i !== currentIndex);
-      const shuffled = [...otherTracks].sort(() => Math.random() - 0.5);
-      const newQueue = currentTrack ? [currentTrack, ...shuffled] : shuffled;
-      set({ queue: newQueue, currentIndex: currentTrack ? 0 : -1 });
+
+      // If playing, keep tracks up to and including currentIndex, shuffle upcoming tracks
+      if (currentIndex >= 0 && currentIndex < queue.length) {
+        const playedTracks = queue.slice(0, currentIndex + 1);
+        const upcomingTracks = queue.slice(currentIndex + 1);
+        const shuffledUpcoming = [...upcomingTracks].sort(() => Math.random() - 0.5);
+        set({ queue: [...playedTracks, ...shuffledUpcoming] });
+      } else {
+        const shuffled = [...queue].sort(() => Math.random() - 0.5);
+        set({ queue: shuffled });
+      }
     },
 
     clearHistory: () => {
@@ -324,29 +331,60 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     },
 
     removeFromQueue: (index: number) => {
-      set(state => {
-        const newQueue = state.queue.filter((_, i) => i !== index);
-        let newIndex = state.currentIndex;
-        if (index < state.currentIndex) {
-          newIndex = Math.max(0, state.currentIndex - 1);
-        } else if (index === state.currentIndex) {
-          newIndex = Math.min(newIndex, newQueue.length - 1);
-        }
-        return {
-          queue: newQueue,
-          currentIndex: newIndex,
-        };
-      });
-    },
+      const { queue, currentIndex, isPlaying } = get();
+      if (index < 0 || index >= queue.length) return;
 
-    removeFromUserQueue: (index: number) => {
-      set(state => ({
-        userQueue: state.userQueue.filter((_, i) => i !== index),
-      }));
+      const newQueue = queue.filter((_, i) => i !== index);
+
+      if (newQueue.length === 0) {
+        audioEngine.pause();
+        set({
+          queue: [],
+          currentIndex: -1,
+          currentTrack: null,
+          isPlaying: false,
+          currentTime: 0,
+        });
+        return;
+      }
+
+      if (index === currentIndex) {
+        // Removed the currently playing track
+        const nextIdx = Math.min(index, newQueue.length - 1);
+        set({ queue: newQueue });
+        if (isPlaying) {
+          get().playQueueIndex(nextIdx);
+        } else {
+          set({
+            currentIndex: nextIdx,
+            currentTrack: newQueue[nextIdx],
+            duration: newQueue[nextIdx].duration || 0,
+            currentTime: 0,
+          });
+        }
+      } else {
+        let newCurrentIndex = currentIndex;
+        if (index < currentIndex) {
+          newCurrentIndex = Math.max(0, currentIndex - 1);
+        }
+        set({
+          queue: newQueue,
+          currentIndex: newCurrentIndex,
+        });
+      }
     },
 
     reorderQueue: (fromIndex: number, toIndex: number) => {
-      set(state => {
+      set((state) => {
+        if (
+          fromIndex < 0 ||
+          fromIndex >= state.queue.length ||
+          toIndex < 0 ||
+          toIndex >= state.queue.length
+        ) {
+          return {};
+        }
+
         const newQueue = [...state.queue];
         const [moved] = newQueue.splice(fromIndex, 1);
         newQueue.splice(toIndex, 0, moved);
@@ -364,21 +402,15 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       });
     },
 
-    reorderUserQueue: (fromIndex: number, toIndex: number) => {
-      set(state => {
-        const newUserQueue = [...state.userQueue];
-        const [moved] = newUserQueue.splice(fromIndex, 1);
-        newUserQueue.splice(toIndex, 0, moved);
-        return { userQueue: newUserQueue };
-      });
-    },
-
     clearQueue: () => {
-      set({ queue: [], currentIndex: -1 });
-    },
-
-    clearUserQueue: () => {
-      set({ userQueue: [] });
+      audioEngine.pause();
+      set({
+        queue: [],
+        currentIndex: -1,
+        currentTrack: null,
+        isPlaying: false,
+        currentTime: 0,
+      });
     },
 
     setNowPlayingOpen: (open: boolean) => {
